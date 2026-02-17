@@ -469,6 +469,57 @@ function moveSlider(dir) {
             notify(`${item.name} is now ${item.status.toUpperCase()}`);
         }
 
+        document.getElementById('add-to-cart-btn').onclick = () => {
+            if (tempQty === 0) {
+                notify("Please select a quantity", "⚠️");
+                return;
+            }
+            
+            // Save the selected qty to our master list
+            catalog[editingIdx].cartQty = tempQty; 
+            
+            updateCartTotals(); // Refresh the numbers at the bottom of the screen
+            closeModals();
+            notify(`Added ${tempQty} items to cart!`, "✅");
+        };
+
+        document.getElementById('qty-plus').onclick = () => {
+            const item = catalog[editingIdx];
+            if (tempQty < item.stock) {
+                tempQty++;
+                document.getElementById('view-qty-display').innerText = tempQty;
+            } else {
+                notify("No more stock available", "⚠️");
+            }
+        };
+
+        //Respect Stock
+        document.getElementById('qty-minus').onclick = () => {
+            if (tempQty > 0) {
+                tempQty--;
+                document.getElementById('view-qty-display').innerText = tempQty;
+            }
+        };
+
+        function updateCartTotals() {
+            let totalItems = 0;
+            let totalPrice = 0;
+        
+            catalog.forEach(item => {
+                if (item.cartQty > 0) {
+                    totalItems += item.cartQty;
+                    totalPrice += (item.cartQty * item.price);
+                }
+            });
+        
+            // Update the UI
+            document.getElementById('cart-qty-total').innerText = totalItems;
+            document.getElementById('cart-subtotal').innerText = totalPrice.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
         // --- IMAGE UPLOAD LOGIC ---
         document.getElementById('img-upload').onchange = async (e) => {
             const files = Array.from(e.target.files).slice(0, 5 - tempImages.length);
@@ -608,5 +659,6 @@ function moveSlider(dir) {
     </script>
 </body>
 </html>
+
 
 
