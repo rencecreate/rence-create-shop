@@ -447,15 +447,37 @@
         function updateFee(key, val) { shippingFees[key] = parseFloat(val) || 0; }
 
         function openAdminModal(idx = null) {
-            editingIdx = idx; tempImages = idx !== null ? [...(catalog[idx].images || [])] : [];
+            editingIdx = idx; 
+            tempImages = idx !== null ? [...(catalog[idx].images || [])] : [];
+            
             document.getElementById('p-title').value = idx !== null ? catalog[idx].name : "";
             document.getElementById('p-desc').value = idx !== null ? catalog[idx].description : "";
             document.getElementById('p-price').value = idx !== null ? catalog[idx].price : "";
             document.getElementById('p-stock').value = idx !== null ? catalog[idx].stock : "";
+        
             const foot = document.getElementById('modal-footer');
-            foot.innerHTML = idx === null ? `<button onclick="saveProduct()" style="flex:1;">Upload</button><button onclick="closeModals()" style="background:#eee; color:#555; flex:1;">Discard</button>` :
-                `<button onclick="saveProduct()" style="flex:1;">Save Change</button><button onclick="deleteItem(${idx})" style="background:var(--danger); flex:1;">Delete Listing</button>`;
-            renderAdminImgPreviews(); document.getElementById('admin-modal').classList.remove('hidden');
+        
+            if (idx === null) {
+                // BUTTONS FOR NEW PRODUCT
+                foot.innerHTML = `
+                    <button onclick="saveProduct()" style="flex:1;">Upload Product</button>
+                    <button onclick="closeModals()" style="background:#eee; color:#555; flex:1;">Cancel</button>
+                `;
+            } else {
+                // BUTTONS FOR EDITING EXISTING PRODUCT
+                foot.innerHTML = `
+                    <div style="display: flex; flex-direction: column; width: 100%; gap: 10px;">
+                        <div style="display: flex; gap: 10px;">
+                            <button onclick="saveProduct()" style="flex:1;">Save Changes</button>
+                            <button onclick="closeModals()" style="background:#eee; color:#555; flex:1;">Discard Edit</button>
+                        </div>
+                        <button onclick="deleteItem(${idx})" style="background:var(--danger); width: 100%;">Delete Listing</button>
+                    </div>
+                `;
+            }
+        
+            renderAdminImgPreviews(); 
+            document.getElementById('admin-modal').classList.remove('hidden');
         }
 
         function renderAdminImgPreviews() {
@@ -512,25 +534,7 @@
 
         async function saveProduct() {
             const name = document.getElementById('p-title').value;
-            const desc = document.getElementById('p-desc').value;
-            const price = parseFloat(document.getElementById('p-price').value) || 0;
-            const stock = parseInt(document.getElementById('p-stock').value) || 0;
-        
-            // Check if anything actually changed (Only for existing items)
-            if (editingIdx !== null) {
-                const item = catalog[editingIdx];
-                const noChanges = 
-                    item.name === name && 
-                    item.description === desc && 
-                    item.price === price && 
-                    item.stock === stock &&
-                    item.images.length === tempImages.length; // Simple length check
-        
-                if (noChanges) {
-                    closeModals(); // Just close it quietly
-                    return; 
-                }
-            }
+            if (!name) return notify("Name is required!", "⚠️");
         
             const data = {
                 name: name,
@@ -541,7 +545,6 @@
                 category: adminCurrentCategory
             };
         
-            // 1. Close modal and update local list first
             let idx = editingIdx;
             if (idx !== null) {
                 catalog[idx] = { ...catalog[idx], ...data };
@@ -553,9 +556,9 @@
         
             closeModals();
             renderAdminTable(); 
-        
-            // 2. Trigger individual Cloud Sync with Progress Bar
-            await syncItemToCloud(idx);
+            
+            // This triggers the cloud sync bar we built earlier
+            await syncItemToCloud(idx); 
         }
         
         async function syncItemToCloud(idx) {
@@ -692,7 +695,13 @@
         }
 
         // Helper closures
-        function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
+        function closeModals() {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+            // Optional: Clear the progress bar if it was visible
+            if(document.getElementById('upload-progress-container')) {
+                document.getElementById('upload-progress-container').classList.add('hidden');
+            }
+        }
         function addCategory() {
             const val = document.getElementById('new-cat-input').value.trim();
             if(val && !categories.includes(val)) { categories.push(val); document.getElementById('new-cat-input').value = ""; renderSidebar('admin-sidebar', true); notify("Folder Created"); }
@@ -743,6 +752,7 @@
     </script>
 </body>
 </html>
+
 
 
 
