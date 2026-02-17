@@ -459,30 +459,44 @@
                 images: tempImages,
                 category: adminCurrentCategory
             };
+        
             if (editingIdx !== null) {
                 data.id = catalog[editingIdx].id;
+                // We update the local catalog but keep cartQty for the UI
                 catalog[editingIdx] = { ...catalog[editingIdx], ...data };
             } else {
-                catalog.push({ ...data, cartQty: 0 });
+                // New products get a temporary ID and 0 cartQty
+                const newItem = { ...data, id: Date.now(), cartQty: 0 };
+                catalog.push(newItem);
             }
-            renderAdminTable(); closeModals(); notify("Changes ready to save!");
+            
+            renderAdminTable(); 
+            closeModals(); 
+            notify("Changes ready to save!");
         }
 
         async function saveAdminChanges() {
             notify("Syncing with Cloud...", "☁️");
             
-            // 1. Sync Products
-            const { error: pErr } = await supabaseClient.from('products').upsert(catalog);
+            // We create a clean version of the catalog WITHOUT cartQty
+            const cleanCatalog = catalog.map(({ cartQty, ...rest }) => rest);
+            
+            // 1. Sync Products using the clean version
+            const { error: pErr } = await supabaseClient.from('products').upsert(cleanCatalog);
             
             // 2. Sync Settings
             const { error: sErr } = await supabaseClient.from('settings').upsert({
-                id: 1, // We use a fixed ID for settings
+                id: 1,
                 category_list: categories,
                 shipping_rates: shippingFees
             });
-
-            if (!pErr && !sErr) notify("All Changes Saved!", "💾");
-            else notify("Error saving!", "❌");
+        
+            if (!pErr && !sErr) {
+                notify("All Changes Saved!", "💾");
+            } else {
+                console.error("Save Error:", pErr || sErr);
+                notify("Error saving! Check console.", "❌");
+            }
         }
 
         // Cart and Order Logic
@@ -604,3 +618,4 @@
     </script>
 </body>
 </html>
+
