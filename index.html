@@ -121,6 +121,15 @@
         button, .qty-btn { min-height: 44px; }
         
         .cart-footer { position: sticky; bottom: 0; left: 0; width: 100%; border-radius: 20px 20px 0 0; margin-top: 0; z-index: 1000; box-sizing: border-box; }
+
+        #admin-page { padding: 10px !important; }
+    
+        .admin-card { padding: 15px !important; }
+        #admin-page .admin-card > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+        #admin-page .display-box { overflow-x: auto; padding: 5px; }
+        #admin-list tr { display: flex; flex-direction: column; border: 1px solid #eee; margin-bottom: 10px; border-radius: 10px; padding: 10px; }
+        #admin-list td { display: block; width: 100%; text-align: left !important; padding: 5px 0 !important; border: none; }
+        #admin-page > .admin-card > div[style*="display: flex"] { flex-direction: column; }
         
         }
     </style>
@@ -358,33 +367,65 @@
             }
         }
 
-        function renderSidebar(targetId, isAdmin) {
+       function renderSidebar(targetId, isAdmin) {
             const sidebar = document.getElementById(targetId);
+            
+            // 1. SAVE SCROLL POSITION
+            // We check if the scroll element exists yet; if it does, we save the position
+            const oldScrollElement = sidebar.querySelector('.sidebar-scroll');
+            const savedScrollLeft = oldScrollElement ? oldScrollElement.scrollLeft : 0;
+            
+            // 2. CLEAR AND REBUILD HEADERS
             sidebar.innerHTML = '<h3 style="font-size:0.75rem; text-transform:uppercase; color:var(--text-light); margin-bottom:10px;">Menu</h3>';
+            
+            // 3. CREATE THE SCROLLABLE CONTAINER
             const scrollDiv = document.createElement('div');
             scrollDiv.className = 'sidebar-scroll';
-            scrollDiv.style.display = "flex";
+            
+            // We force "flex" here so categories stay in a row on mobile
+            scrollDiv.style.display = "flex"; 
+            
+            // 4. GENERATE THE BUTTONS
             categories.forEach((cat, index) => {
                 const row = document.createElement('div');
                 row.style = "display:flex; align-items:center; gap:5px; margin-bottom:8px;";
+                
                 const btn = document.createElement('button');
-                btn.className = `sidebar-btn ${(isAdmin ? adminCurrentCategory : currentCategory) === cat ? 'active' : ''}`;
+                // Check if this button should look "active" based on who is viewing it (User vs Admin)
+                const isActive = isAdmin ? (adminCurrentCategory === cat) : (currentCategory === cat);
+                
+                btn.className = `sidebar-btn ${isActive ? 'active' : ''}`;
                 btn.innerText = cat;
+                
                 btn.onclick = () => {
-                    if (isAdmin) { adminCurrentCategory = cat; renderSidebar('admin-sidebar', true); renderAdminTable(); }
-                    else { currentCategory = cat; renderSidebar('main-sidebar', false); renderShop(); }
+                    if (isAdmin) { 
+                        adminCurrentCategory = cat; 
+                        renderSidebar('admin-sidebar', true); 
+                        renderAdminTable(); 
+                    } else { 
+                        currentCategory = cat; 
+                        renderSidebar('main-sidebar', false); 
+                        renderShop(); 
+                    }
                 };
+                
                 row.appendChild(btn);
+                
+                // If Admin is viewing, add the "X" delete button next to the category
                 if (isAdmin) {
                     const del = document.createElement('button');
                     del.innerHTML = "×";
-                    del.style = "background:#fee2e2; color:var(--danger); width:35px; border-radius:10px; font-weight:bold; height:40px;";
+                    del.style = "background:#fee2e2; color:var(--danger); width:35px; border-radius:10px; font-weight:bold; height:40px; border:none; cursor:pointer;";
                     del.onclick = () => deleteCategory(index);
                     row.appendChild(del);
                 }
+                
                 scrollDiv.appendChild(row);
             });
+            
             sidebar.appendChild(scrollDiv);
+            
+            scrollDiv.scrollLeft = savedScrollLeft;
         }
 
         function renderShop() {
@@ -410,23 +451,22 @@
                 if (item.category === adminCurrentCategory) {
                     const isLive = item.status === 'live';
                     list.innerHTML += `
-                        <tr id="row-${i}" style="background:#fff; border-bottom: 1px solid #f1f5f9;">
-                            <td style="padding:15px;">
-                                <div style="font-weight:700;">${item.name}</div>
+                        <tr id="row-${i}" class="admin-mobile-row">
+                            <td>
+                                <div style="font-weight:700; font-size: 1.1rem;">${item.name}</div>
                                 <div id="status-${i}" class="hidden">
                                     <div class="row-progress-container"><div id="bar-${i}" class="row-progress-bar"></div></div>
                                 </div>
                             </td>
-                            <td style="color:var(--primary);">₱${item.price.toFixed(2)}</td>
+                            <td style="color:var(--primary); font-weight: bold;">₱${item.price.toFixed(2)}</td>
                             <td>
                                 <button onclick="toggleLiveStatus(${i})" 
-                                    style="padding: 5px 10px; font-size: 10px; border-radius: 20px; border: none; cursor: pointer;
-                                    background: ${isLive ? '#22c55e' : '#cbd5e1'}; color: white;">
+                                    style="width: 100%; padding: 10px; border-radius: 10px; background: ${isLive ? '#22c55e' : '#cbd5e1'}; color: white;">
                                     ${isLive ? '● LIVE' : '○ OFFLINE'}
                                 </button>
                             </td>
-                            <td style="text-align:right; padding-right:15px;">
-                                <button id="edit-btn-${i}" onclick="openAdminModal(${i})" style="padding:8px 15px;">Edit</button>
+                            <td>
+                                <button id="edit-btn-${i}" onclick="openAdminModal(${i})" style="width: 100%; padding: 10px; background: var(--text);">Edit Product</button>
                             </td>
                         </tr>`;
                 }
@@ -757,6 +797,7 @@
     </script>
 </body>
 </html>
+
 
 
 
