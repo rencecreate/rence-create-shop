@@ -232,7 +232,11 @@
         <div class="modal-content">
             <h2 id="modal-header-text">Product Panel</h2>
             <div id="admin-img-previews" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px;"></div>
-            <input type="file" id="img-upload" multiple accept="image/*">
+            <div id="upload-progress-container" class="hidden" style="width: 100%; background: #e2e8f0; height: 8px; border-radius: 4px; margin-bottom: 12px; overflow: hidden;">
+                <div id="upload-progress-bar" style="width: 0%; height: 100%; background: var(--primary); transition: 0.3s;"></div>
+            </div>
+            <div id="upload-status-text" style="font-size: 0.7rem; color: var(--text-light); margin-top: -10px; margin-bottom: 10px;" class="hidden">Processing images...</div>
+                <input type="file" id="img-upload" multiple accept="image/*">
             <input type="text" id="p-title" placeholder="Title">
             <textarea id="p-desc" placeholder="Product Description..." style="height:100px;"></textarea>
             <div style="display: flex; gap: 12px;">
@@ -444,13 +448,46 @@
             }
         }
 
-        document.getElementById('img-upload').onchange = (e) => {
+        document.getElementById('img-upload').onchange = async (e) => {
             const files = Array.from(e.target.files).slice(0, 5 - tempImages.length);
-            files.forEach(file => {
+            if (files.length === 0) return;
+        
+            const progressCont = document.getElementById('upload-progress-container');
+            const progressBar = document.getElementById('upload-progress-bar');
+            const statusText = document.getElementById('upload-status-text');
+        
+            progressCont.classList.remove('hidden');
+            statusText.classList.remove('hidden');
+            
+            let completed = 0;
+        
+            for (const file of files) {
                 const reader = new FileReader();
-                reader.onload = (ev) => { tempImages.push(ev.target.result); renderAdminImgPreviews(); };
+                
+                // Wrap reader in a promise so we can use "await"
+                const promise = new Promise((resolve) => {
+                    reader.onload = (ev) => {
+                        tempImages.push(ev.target.result);
+                        completed++;
+                        // Update Progress Bar
+                        const percent = (completed / files.length) * 100;
+                        progressBar.style.width = percent + "%";
+                        resolve();
+                    };
+                });
+        
                 reader.readAsDataURL(file);
-            });
+                await promise;
+            }
+
+            statusText.innerText = "Images ready!";
+            setTimeout(() => {
+                progressCont.classList.add('hidden');
+                statusText.classList.add('hidden');
+                progressBar.style.width = "0%";
+            }, 1000);
+        
+            renderAdminImgPreviews();
         };
 
         function saveProduct() {
@@ -479,29 +516,40 @@
         }
 
         async function saveAdminChanges() {
-            notify("Syncing with Cloud...", "☁️");
+            const btn = event.target; // Get the button that was clicked
+            const originalText = btn.innerText;
             
-            // We create a clean version of the catalog WITHOUT cartQty
-            const cleanCatalog = catalog.map(({ cartQty, ...rest }) => rest);
-            
-            // 1. Sync Products using the clean version
-            const { error: pErr } = await supabaseClient.from('products').upsert(cleanCatalog);
-            
-            // 2. Sync Settings
-            const { error: sErr } = await supabaseClient.from('settings').upsert({
-                id: 1,
-                category_list: categories,
-                shipping_rates: shippingFees
-            });
+            btn.innerText = "⏳ Syncing with Cloud...";
+            btn.disabled = true;
+            btn.style.opacity = "0.7";
         
-            if (!pErr && !sErr) {
-                notify("All Changes Saved!", "💾");
-            } else {
-                console.error("Save Error:", pErr || sErr);
-                notify("Error saving! Check console.", "❌");
+            try {
+                const cleanCatalog = catalog.map(({ cartQty, ...rest }) => rest);
+                
+                // 1. Sync Products
+                const { error: pErr } = await supabaseClient.from('products').upsert(cleanCatalog);
+                
+                // 2. Sync Settings
+                const { error: sErr } = await supabaseClient.from('settings').upsert({
+                    id: 1,
+                    category_list: categories,
+                    shipping_rates: shippingFees
+                });
+        
+                if (!pErr && !sErr) {
+                    notify("All Changes Saved!", "💾");
+                } else {
+                    throw new Error(pErr?.message || sErr?.message);
+                }
+            } catch (err) {
+                console.error("Save Error:", err);
+                notify("Sync Failed. Try smaller images.", "❌");
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+                btn.style.opacity = "1";
             }
         }
-
         // Cart and Order Logic
         function updateCartTotals() {
             let count = 0, sub = 0;
@@ -621,5 +669,6 @@
     </script>
 </body>
 </html>
+
 
 
