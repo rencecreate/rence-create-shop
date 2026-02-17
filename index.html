@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>RENCE CREATE | Art Shop</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -107,6 +107,22 @@
         .row-progress-container { width: 100%; background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 5px; }
         .row-progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
         .syncing { opacity: 0.6; pointer-events: none; }
+
+        @media (max-width: 768px) { header { padding: 1rem 3%; flex-direction: column; gap: 10px; text-align: center; }
+        
+        .shop-container { flex-direction: column; height: auto; gap: 15px; }
+        .sidebar { width: 100%; height: auto; padding: 10px; }
+        .sidebar-scroll { display: flex; overflow-x: auto; gap: 10px; padding-bottom: 10px; }
+        .sidebar-btn { white-space: nowrap; width: auto; padding: 8px 15px; }
+        .display-box { width: 100%; padding: 15px; height: auto; min-height: 400px; }
+        .product-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .modal-content { width: 95%; padding: 20px; margin: 10px; }
+        
+        button, .qty-btn { min-height: 44px; }
+        
+        .cart-footer { position: sticky; bottom: 0; left: 0; width: 100%; border-radius: 20px 20px 0 0; margin-top: 0; z-index: 1000; box-sizing: border-box; }
+        
+        }
     </style>
 </head>
 <body>
@@ -347,6 +363,7 @@
             sidebar.innerHTML = '<h3 style="font-size:0.75rem; text-transform:uppercase; color:var(--text-light); margin-bottom:10px;">Menu</h3>';
             const scrollDiv = document.createElement('div');
             scrollDiv.className = 'sidebar-scroll';
+            scrollDiv.style.display = "flex";
             categories.forEach((cat, index) => {
                 const row = document.createElement('div');
                 row.style = "display:flex; align-items:center; gap:5px; margin-bottom:8px;";
@@ -666,14 +683,18 @@
         function downloadOrderSheet() {
             const sheet = document.getElementById('printable-order-sheet');
             const actions = document.getElementById('invoice-actions');
+            
             actions.style.display = 'none';
-            html2canvas(sheet).then(canvas => {
+            
+            // Added scale: 2 for high-quality images on mobile
+            html2canvas(sheet, { scale: 2, useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
-                link.download = 'order-sheet.png';
-                link.href = canvas.toDataURL();
+                link.download = `order-${Date.now()}.png`;
+                link.href = canvas.toDataURL("image/png");
                 link.click();
+                
                 actions.style.display = 'flex';
-                notify("Downloaded!", "📸");
+                notify("Saved to Gallery!", "📸");
             });
         }
 
@@ -736,5 +757,6 @@
     </script>
 </body>
 </html>
+
 
 
