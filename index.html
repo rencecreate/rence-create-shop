@@ -101,6 +101,12 @@
         
         .shipping-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f1f5f9; padding: 15px; border-radius: 12px; }
         .shipping-grid label { font-size: 0.75rem; font-weight: 700; color: var(--text-light); }
+
+        .row-progress-container { width: 100%; background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 5px; }
+        .row-progress-bar { height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease; }
+        /* Shimmer animation for a "syncing" feel */
+        .syncing { opacity: 0.6; pointer-events: none; }
+        
     </style>
 </head>
 <body>
@@ -397,12 +403,26 @@
 
         // Admin Table
         function renderAdminTable() {
-            const list = document.getElementById('admin-list'); list.innerHTML = '';
+            const list = document.getElementById('admin-list'); 
+            list.innerHTML = '';
+            
             catalog.forEach((item, i) => {
                 if (item.category === adminCurrentCategory) {
-                    list.innerHTML += `<tr style="background:#fff;"><td style="padding:15px; font-weight:700;">${item.name}</td>
-                        <td style="color:var(--primary);">₱${item.price}</td><td style="color:var(--text-light);">Stock: ${item.stock}</td>
-                        <td style="text-align:right; padding-right:15px;"><button onclick="openAdminModal(${i})" style="padding:8px 15px;">Edit</button></td></tr>`;
+                    list.innerHTML += `
+                        <tr id="row-${i}" style="background:#fff; border-bottom: 1px solid #f1f5f9;">
+                            <td style="padding:15px;">
+                                <div style="font-weight:700;">${item.name}</div>
+                                <div id="status-${i}" class="hidden">
+                                    <div class="row-progress-container"><div id="bar-${i}" class="row-progress-bar"></div></div>
+                                    <span style="font-size:10px; color:var(--primary)">Syncing to Cloud...</span>
+                                </div>
+                            </td>
+                            <td style="color:var(--primary);">₱${item.price}</td>
+                            <td style="color:var(--text-light);">Stock: ${item.stock}</td>
+                            <td style="text-align:right; padding-right:15px;">
+                                <button id="edit-btn-${i}" onclick="openAdminModal(${i})" style="padding:8px 15px;">Edit</button>
+                            </td>
+                        </tr>`;
                 }
             });
         }
@@ -490,9 +510,12 @@
             renderAdminImgPreviews();
         };
 
-        function saveProduct() {
+        async function saveProduct() {
+            const name = document.getElementById('p-title').value;
+            if (!name) return notify("Name is required!", "⚠️");
+        
             const data = {
-                name: document.getElementById('p-title').value,
+                name: name,
                 description: document.getElementById('p-desc').value,
                 price: parseFloat(document.getElementById('p-price').value) || 0,
                 stock: parseInt(document.getElementById('p-stock').value) || 0,
@@ -500,56 +523,89 @@
                 category: adminCurrentCategory
             };
         
-            if (editingIdx !== null) {
-                data.id = catalog[editingIdx].id;
-                // We update the local catalog but keep cartQty for the UI
-                catalog[editingIdx] = { ...catalog[editingIdx], ...data };
+            // 1. Close modal and update local list first
+            let idx = editingIdx;
+            if (idx !== null) {
+                catalog[idx] = { ...catalog[idx], ...data };
             } else {
-                // New products get a temporary ID and 0 cartQty
                 const newItem = { ...data, id: Date.now(), cartQty: 0 };
                 catalog.push(newItem);
+                idx = catalog.length - 1;
             }
-            
+        
+            closeModals();
             renderAdminTable(); 
-            closeModals(); 
-            notify("Changes ready to save!");
+        
+            // 2. Trigger individual Cloud Sync with Progress Bar
+            await syncItemToCloud(idx);
+        }
+        
+        async function syncItemToCloud(idx) {
+            const statusDiv = document.getElementById(`status-${idx}`);
+            const bar = document.getElementById(`bar-${idx}`);
+            const row = document.getElementById(`row-${idx}`);
+            const editBtn = document.getElementById(`edit-btn-${idx}`);
+        
+            // UI Feedback Start
+            statusDiv.classList.remove('hidden');
+            row.classList.add('syncing');
+            editBtn.disabled = true;
+            
+            // Animate bar to 50% (Processing)
+            setTimeout(() => { bar.style.width = "50%"; }, 100);
+        
+            try {
+                // Prepare clean data (no cartQty)
+                const { cartQty, ...cleanData } = catalog[idx];
+                
+                const { error } = await supabaseClient
+                    .from('products')
+                    .upsert(cleanData);
+        
+                if (error) throw error;
+        
+                // Success: Animate to 100%
+                bar.style.width = "100%";
+                setTimeout(() => {
+                    statusDiv.classList.add('hidden');
+                    row.classList.remove('syncing');
+                    editBtn.disabled = false;
+                    notify("Cloud Updated!", "☁️");
+                }, 500);
+        
+            } catch (err) {
+                console.error(err);
+                notify("Cloud Sync Failed", "❌");
+                row.classList.remove('syncing');
+                editBtn.disabled = false;
+            }
         }
 
         async function saveAdminChanges() {
-            const btn = event.target; // Get the button that was clicked
-            const originalText = btn.innerText;
-            
-            btn.innerText = "⏳ Syncing with Cloud...";
-            btn.disabled = true;
-            btn.style.opacity = "0.7";
-        
-            try {
-                const cleanCatalog = catalog.map(({ cartQty, ...rest }) => rest);
-                
-                // 1. Sync Products
-                const { error: pErr } = await supabaseClient.from('products').upsert(cleanCatalog);
-                
-                // 2. Sync Settings
-                const { error: sErr } = await supabaseClient.from('settings').upsert({
-                    id: 1,
-                    category_list: categories,
-                    shipping_rates: shippingFees
-                });
-        
-                if (!pErr && !sErr) {
-                    notify("All Changes Saved!", "💾");
-                } else {
-                    throw new Error(pErr?.message || sErr?.message);
-                }
-            } catch (err) {
-                console.error("Save Error:", err);
-                notify("Sync Failed. Try smaller images.", "❌");
-            } finally {
-                btn.innerText = originalText;
-                btn.disabled = false;
-                btn.style.opacity = "1";
+            // Safety Guard: Check if any row is currently syncing
+            const activeSyncs = document.querySelectorAll('.syncing');
+            if (activeSyncs.length > 0) {
+                notify("Please wait for products to finish syncing...", "⏳");
+                return; // Stops the function here
             }
+        
+            const btn = event.target;
+            btn.innerText = "⏳ Syncing Settings...";
+            
+            const { error } = await supabaseClient.from('settings').upsert({
+                id: 1,
+                category_list: categories,
+                shipping_rates: shippingFees
+            });
+        
+            if (!error) {
+                notify("Settings Saved!", "💾");
+            } else {
+                notify("Error saving settings", "❌");
+            }
+            btn.innerText = "Save All Changes";
         }
+        
         // Cart and Order Logic
         function updateCartTotals() {
             let count = 0, sub = 0;
@@ -669,6 +725,7 @@
     </script>
 </body>
 </html>
+
 
 
 
