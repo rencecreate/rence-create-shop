@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RENCE CREATE | Art Shop</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root {
             --primary: #0062ff;
@@ -264,20 +266,49 @@
     </div>
 
     <script>
-        let categories = JSON.parse(localStorage.getItem('art_categories')) || ["Stickers", "Pins"];
-        let catalog = JSON.parse(localStorage.getItem('art_catalog')) || [];
-        let shippingFees = JSON.parse(localStorage.getItem('art_shipping')) || {
+        // --- SUPABASE CONFIG ---
+        const SUPABASE_URL = 'https://wogftjsssxfhktgdfvod.supabase.co'; // REPLACE THIS
+        const SUPABASE_KEY = 'sb_publishable_9yJg8M-wrRXHMfuDnCtFkA_L3n1Ii36'; // REPLACE THIS
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // --- STATE VARIABLES ---
+        let categories = ["Stickers", "Pins"];
+        let catalog = [];
+        let shippingFees = {
             "Luzon": 85, "Visayas": 100, "Mindanao": 105,
             "Singapore": 450, "Malaysia": 450, "Thailand": 500, "Vietnam": 500, "Indonesia": 500, "Hongkong": 650, "China": 650
         };
 
-        let currentCategory = categories[0];
-        let adminCurrentCategory = categories[0];
+        let currentCategory = "";
+        let adminCurrentCategory = "";
         let tempImages = [];
         let editingIdx = null;
         let tempQty = 0;
         let currentSlide = 0;
 
+        // --- INITIALIZATION ---
+        async function loadAllData() {
+            // Load Settings (Categories & Shipping)
+            const { data: setts } = await supabaseClient.from('settings').select('*').single();
+            if (setts) {
+                categories = setts.category_list || categories;
+                shippingFees = setts.shipping_rates || shippingFees;
+            }
+            
+            // Load Products
+            const { data: prods } = await supabaseClient.from('products').select('*');
+            if (prods) {
+                catalog = prods.map(p => ({ ...p, cartQty: 0 }));
+            }
+
+            currentCategory = categories[0];
+            adminCurrentCategory = categories[0];
+        }
+
+        // Initialize on load
+        loadAllData();
+
+        // --- CORE FUNCTIONS ---
         function notify(text, icon = "✨") {
             const alertBox = document.getElementById('custom-alert');
             document.getElementById('alert-text').innerText = text;
@@ -295,8 +326,10 @@
         function closeConfirm() { document.getElementById('confirm-panel').classList.add('hidden'); }
         document.getElementById('confirm-yes').onclick = () => { confirmCallback(); closeConfirm(); };
 
-        function enterStore() {
+        async function enterStore() {
             const name = document.getElementById('username-input').value;
+            await loadAllData(); // Fresh load when entering
+
             if (name === "051022") { showAdmin(); } 
             else if (name) {
                 document.getElementById('login-page').classList.add('hidden');
@@ -308,6 +341,7 @@
             }
         }
 
+        // Sidebars
         function renderSidebar(targetId, isAdmin) {
             const sidebar = document.getElementById(targetId);
             sidebar.innerHTML = '<h3 style="font-size:0.75rem; text-transform:uppercase; color:var(--text-light); margin-bottom:10px;">Menu</h3>';
@@ -337,6 +371,7 @@
             sidebar.appendChild(scrollDiv);
         }
 
+        // Shop View
         function renderShop() {
             const grid = document.getElementById('shop-grid');
             grid.innerHTML = '';
@@ -353,44 +388,19 @@
             });
         }
 
-        function openUserView(idx) {
-            const item = catalog[idx]; tempQty = 0; currentSlide = 0;
-            document.getElementById('view-title').innerText = item.name;
-            document.getElementById('view-desc').innerText = item.description || "";
-            document.getElementById('view-price').innerText = `₱${item.price.toFixed(2)}`;
-            document.getElementById('view-stock-count').innerText = item.stock;
-            const wrap = document.getElementById('slider-wrapper'); wrap.innerHTML = '';
-            if (item.images?.length > 0) item.images.forEach(img => wrap.innerHTML += `<img src="${img}">`);
-            wrap.style.transform = `translateX(0px)`;
-            updateQtyDisplay(item);
-            document.getElementById('qty-plus').onclick = () => { if(tempQty < item.stock) { tempQty++; updateQtyDisplay(item); } };
-            document.getElementById('qty-minus').onclick = () => { if(tempQty > 0) { tempQty--; updateQtyDisplay(item); } };
-            document.getElementById('add-to-cart-btn').onclick = () => {
-                if(tempQty > 0) { item.cartQty = (item.cartQty || 0) + tempQty; updateCartTotals(); notify("Added to cart!", "🛒"); closeModals(); }
-            };
-            document.getElementById('user-modal').classList.remove('hidden');
+        // Admin Table
+        function renderAdminTable() {
+            const list = document.getElementById('admin-list'); list.innerHTML = '';
+            catalog.forEach((item, i) => {
+                if (item.category === adminCurrentCategory) {
+                    list.innerHTML += `<tr style="background:#fff;"><td style="padding:15px; font-weight:700;">${item.name}</td>
+                        <td style="color:var(--primary);">₱${item.price}</td><td style="color:var(--text-light);">Stock: ${item.stock}</td>
+                        <td style="text-align:right; padding-right:15px;"><button onclick="openAdminModal(${i})" style="padding:8px 15px;">Edit</button></td></tr>`;
+                }
+            });
         }
 
-        function moveSlider(dir) {
-            const wrap = document.getElementById('slider-wrapper');
-            const total = wrap.children.length; if (total <= 1) return;
-            currentSlide = (currentSlide + dir + total) % total;
-            wrap.style.transform = `translateX(-${currentSlide * 100}%)`;
-        }
-
-        function updateQtyDisplay(item) {
-            document.getElementById('view-qty-display').innerText = tempQty;
-            document.getElementById('qty-minus').disabled = tempQty <= 0;
-            document.getElementById('qty-plus').disabled = tempQty >= item.stock;
-        }
-
-        function updateCartTotals() {
-            let count = 0, sub = 0;
-            catalog.forEach(item => { if(item.cartQty > 0) { count += item.cartQty; sub += (item.cartQty * item.price); } });
-            document.getElementById('cart-qty-total').innerText = count;
-            document.getElementById('cart-subtotal').innerText = sub.toFixed(2);
-        }
-
+        // Admin Logic
         function showAdmin() {
             document.getElementById('login-page').classList.add('hidden');
             document.getElementById('admin-page').classList.remove('hidden');
@@ -408,17 +418,6 @@
         }
 
         function updateFee(key, val) { shippingFees[key] = parseFloat(val) || 0; }
-
-        function renderAdminTable() {
-            const list = document.getElementById('admin-list'); list.innerHTML = '';
-            catalog.forEach((item, i) => {
-                if (item.category === adminCurrentCategory) {
-                    list.innerHTML += `<tr style="background:#fff;"><td style="padding:15px; font-weight:700;">${item.name}</td>
-                        <td style="color:var(--primary);">₱${item.price}</td><td style="color:var(--text-light);">Stock: ${item.stock}</td>
-                        <td style="text-align:right; padding-right:15px;"><button onclick="openAdminModal(${i})" style="padding:8px 15px;">Edit</button></td></tr>`;
-                }
-            });
-        }
 
         function openAdminModal(idx = null) {
             editingIdx = idx; tempImages = idx !== null ? [...(catalog[idx].images || [])] : [];
@@ -453,43 +452,46 @@
 
         function saveProduct() {
             const data = {
-                id: editingIdx !== null ? catalog[editingIdx].id : Date.now(),
                 name: document.getElementById('p-title').value,
                 description: document.getElementById('p-desc').value,
                 price: parseFloat(document.getElementById('p-price').value) || 0,
                 stock: parseInt(document.getElementById('p-stock').value) || 0,
                 images: tempImages,
-                category: adminCurrentCategory,
-                cartQty: 0
+                category: adminCurrentCategory
             };
-            if (editingIdx !== null) catalog[editingIdx] = data; else catalog.push(data);
+            if (editingIdx !== null) {
+                data.id = catalog[editingIdx].id;
+                catalog[editingIdx] = { ...catalog[editingIdx], ...data };
+            } else {
+                catalog.push({ ...data, cartQty: 0 });
+            }
             renderAdminTable(); closeModals(); notify("Changes ready to save!");
         }
 
-        function deleteItem(idx) { 
-            customConfirm("Delete this listing?", () => { 
-                catalog.splice(idx, 1); 
-                closeModals(); 
-                renderAdminTable(); 
-                notify("Item removed"); 
-            }); 
+        async function saveAdminChanges() {
+            notify("Syncing with Cloud...", "☁️");
+            
+            // 1. Sync Products
+            const { error: pErr } = await supabaseClient.from('products').upsert(catalog);
+            
+            // 2. Sync Settings
+            const { error: sErr } = await supabaseClient.from('settings').upsert({
+                id: 1, // We use a fixed ID for settings
+                category_list: categories,
+                shipping_rates: shippingFees
+            });
+
+            if (!pErr && !sErr) notify("All Changes Saved!", "💾");
+            else notify("Error saving!", "❌");
         }
 
-        function deleteCategory(index) { customConfirm(`Delete "${categories[index]}" folder?`, () => { categories.splice(index, 1); adminCurrentCategory = categories[0] || ""; renderSidebar('admin-sidebar', true); renderAdminTable(); notify("Folder removed"); }); }
-        
-        function saveAdminChanges() {
-            localStorage.setItem('art_catalog', JSON.stringify(catalog));
-            localStorage.setItem('art_categories', JSON.stringify(categories));
-            localStorage.setItem('art_shipping', JSON.stringify(shippingFees));
-            notify("Data Saved Successfully!", "💾");
+        // Cart and Order Logic
+        function updateCartTotals() {
+            let count = 0, sub = 0;
+            catalog.forEach(item => { if(item.cartQty > 0) { count += item.cartQty; sub += (item.cartQty * item.price); } });
+            document.getElementById('cart-qty-total').innerText = count;
+            document.getElementById('cart-subtotal').innerText = sub.toFixed(2);
         }
-
-        function addCategory() {
-            const val = document.getElementById('new-cat-input').value.trim();
-            if(val && !categories.includes(val)) { categories.push(val); document.getElementById('new-cat-input').value = ""; renderSidebar('admin-sidebar', true); notify("Folder Created"); }
-        }
-
-        function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
 
         function showInvoice() {
             const listCon = document.getElementById('invoice-items-list');
@@ -508,7 +510,6 @@
 
             if (!hasItems) { notify("Your cart is empty!", "🛒"); return; }
 
-            // Populate Dropdown from Admin Data (Hiding Prices)
             const localGrp = document.getElementById('local-opts'); localGrp.innerHTML = '';
             const intlGrp = document.getElementById('intl-opts'); intlGrp.innerHTML = '';
             
@@ -525,12 +526,11 @@
         }
 
         function calculateGrandTotal() {
-            const subtotal = parseFloat(document.getElementById('inv-subtotal').innerText.replace('₱', ''));
+            const subtotalText = document.getElementById('inv-subtotal').innerText.replace('₱', '');
+            const subtotal = parseFloat(subtotalText) || 0;
             const shipping = parseFloat(document.getElementById('region-select').value) || 0;
-            
             document.getElementById('inv-shipping').innerText = `₱${shipping.toFixed(2)}`;
-            const total = subtotal + shipping;
-            document.getElementById('inv-grand').innerText = `₱${total.toFixed(2)}`;
+            document.getElementById('inv-grand').innerText = `₱${(subtotal + shipping).toFixed(2)}`;
         }
 
         function downloadOrderSheet() {
@@ -550,6 +550,56 @@
         function proceedToCheckout() {
             if (!document.getElementById('region-select').value) { alert("Please select a region!"); return; }
             window.open('https://docs.google.com/forms/d/e/YOUR_FORM_ID/viewform', '_blank');
+        }
+
+        // Helper closures
+        function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
+        function addCategory() {
+            const val = document.getElementById('new-cat-input').value.trim();
+            if(val && !categories.includes(val)) { categories.push(val); document.getElementById('new-cat-input').value = ""; renderSidebar('admin-sidebar', true); notify("Folder Created"); }
+        }
+        function deleteCategory(index) { customConfirm(`Delete "${categories[index]}"?`, () => { categories.splice(index, 1); adminCurrentCategory = categories[0] || ""; renderSidebar('admin-sidebar', true); renderAdminTable(); }); }
+        
+        // User Item View logic remains mostly the same, ensuring it works with current catalog
+        function openUserView(idx) {
+            const item = catalog[idx]; tempQty = 0; currentSlide = 0;
+            document.getElementById('view-title').innerText = item.name;
+            document.getElementById('view-desc').innerText = item.description || "";
+            document.getElementById('view-price').innerText = `₱${item.price.toFixed(2)}`;
+            document.getElementById('view-stock-count').innerText = item.stock;
+            const wrap = document.getElementById('slider-wrapper'); wrap.innerHTML = '';
+            if (item.images?.length > 0) item.images.forEach(img => wrap.innerHTML += `<img src="${img}">`);
+            wrap.style.transform = `translateX(0px)`;
+            updateQtyDisplay(item);
+            document.getElementById('qty-plus').onclick = () => { if(tempQty < item.stock) { tempQty++; updateQtyDisplay(item); } };
+            document.getElementById('qty-minus').onclick = () => { if(tempQty > 0) { tempQty--; updateQtyDisplay(item); } };
+            document.getElementById('add-to-cart-btn').onclick = () => {
+                if(tempQty > 0) { item.cartQty = (item.cartQty || 0) + tempQty; updateCartTotals(); notify("Added to cart!", "🛒"); closeModals(); }
+            };
+            document.getElementById('user-modal').classList.remove('hidden');
+        }
+        function updateQtyDisplay(item) {
+            document.getElementById('view-qty-display').innerText = tempQty;
+            document.getElementById('qty-minus').disabled = tempQty <= 0;
+            document.getElementById('qty-plus').disabled = tempQty >= item.stock;
+        }
+        function moveSlider(dir) {
+            const wrap = document.getElementById('slider-wrapper');
+            const total = wrap.children.length; if (total <= 1) return;
+            currentSlide = (currentSlide + dir + total) % total;
+            wrap.style.transform = `translateX(-${currentSlide * 100}%)`;
+        }
+        async function deleteItem(idx) { 
+            const item = catalog[idx];
+            customConfirm("Delete this listing?", async () => { 
+                if (item.id) {
+                    await supabaseClient.from('products').delete().eq('id', item.id);
+                }
+                catalog.splice(idx, 1); 
+                closeModals(); 
+                renderAdminTable(); 
+                notify("Item removed"); 
+            }); 
         }
     </script>
 </body>
