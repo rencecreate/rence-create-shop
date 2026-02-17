@@ -326,6 +326,40 @@
             }
         }
 
+        function openUserView(idx) {
+            const item = catalog[idx];
+            editingIdx = idx; // Keep track of which item we are viewing
+            tempQty = 0; // Reset quantity for this view
+            currentSlide = 0;
+        
+            document.getElementById('view-title').innerText = item.name;
+            document.getElementById('view-desc').innerText = item.description || "No description provided.";
+            document.getElementById('view-price').innerText = `₱${item.price.toFixed(2)}`;
+            document.getElementById('view-stock-count').innerText = item.stock;
+            document.getElementById('view-qty-display').innerText = "0";
+        
+            // Setup Slider
+            const wrapper = document.getElementById('slider-wrapper');
+            wrapper.innerHTML = '';
+            if (item.images && item.images.length > 0) {
+                item.images.forEach(img => {
+                    wrapper.innerHTML += `<img src="${img}">`;
+                });
+            } else {
+                wrapper.innerHTML = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#eee;">No Images</div>`;
+            }
+        
+            document.getElementById('user-modal').classList.remove('hidden');
+        }
+
+// Slider Controls
+function moveSlider(dir) {
+    const wrapper = document.getElementById('slider-wrapper');
+    const totalSlides = wrapper.children.length;
+    currentSlide = (currentSlide + dir + totalSlides) % totalSlides;
+    wrapper.style.transform = `translateX(-${currentSlide * 100}%)`;
+}
+
         function showAdmin() {
             document.getElementById('login-page').classList.add('hidden');
             document.getElementById('admin-page').classList.remove('hidden');
@@ -381,6 +415,19 @@
                         <p style="color:var(--primary); font-weight:800;">₱${item.price.toFixed(2)}</p>
                     </div>`;
             });
+        }
+
+        function showInvoice() {
+            // Calculate total quantity across all items
+            const totalQty = catalog.reduce((sum, item) => sum + (item.cartQty || 0), 0);
+        
+            if (totalQty === 0) {
+                notify("Your cart is empty!", "🛒");
+                return; // Stop here, don't open the modal
+            }
+        
+            renderInvoice(); // If items exist, show the invoice
+            document.getElementById('invoice-modal').classList.remove('hidden');
         }
 
         // --- ADMIN TABLE & TOGGLE ---
@@ -561,4 +608,5 @@
     </script>
 </body>
 </html>
+
 
