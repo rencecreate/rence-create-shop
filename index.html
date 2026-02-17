@@ -512,7 +512,25 @@
 
         async function saveProduct() {
             const name = document.getElementById('p-title').value;
-            if (!name) return notify("Name is required!", "⚠️");
+            const desc = document.getElementById('p-desc').value;
+            const price = parseFloat(document.getElementById('p-price').value) || 0;
+            const stock = parseInt(document.getElementById('p-stock').value) || 0;
+        
+            // Check if anything actually changed (Only for existing items)
+            if (editingIdx !== null) {
+                const item = catalog[editingIdx];
+                const noChanges = 
+                    item.name === name && 
+                    item.description === desc && 
+                    item.price === price && 
+                    item.stock === stock &&
+                    item.images.length === tempImages.length; // Simple length check
+        
+                if (noChanges) {
+                    closeModals(); // Just close it quietly
+                    return; 
+                }
+            }
         
             const data = {
                 name: name,
@@ -725,6 +743,7 @@
     </script>
 </body>
 </html>
+
 
 
 
