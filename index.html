@@ -191,16 +191,20 @@
         <span id="alert-text">Action Successful</span>
     </div>
 
-    <div id="confirm-panel" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width: 400px; text-align: center;">
-            <h2 style="margin-top:0;">Are you sure?</h2>
-            <p id="confirm-msg" style="color: var(--text-light);"></p>
-            <div style="display:flex; gap:10px; margin-top: 20px;">
-                <button id="confirm-yes" style="flex:1; background: var(--danger);">Yes, Delete</button>
-                <button onclick="closeConfirm()" style="flex:1; background: #eee; color: #555;">Cancel</button>
-            </div>
+<div id="confirm-panel" class="modal-overlay hidden" style="z-index: 9999;">
+    <div class="modal-content" style="max-width:300px; text-align:center;">
+        <p id="confirm-msg" style="margin-bottom:20px; font-weight:700;"></p>
+        <div id="confirm-standard-btns" style="display:flex; gap:10px;">
+            <button id="confirm-yes" style="flex:1; background:var(--primary);">Yes</button>
+            <button onclick="closeConfirm()" style="flex:1; background:#eee; color:#555;">No</button>
+        </div>
+        <div id="confirm-shipping-btns" class="hidden" style="display:flex; flex-direction:column; gap:10px;">
+            <button onclick="confirmCallback('local'); closeConfirm();" style="background:var(--primary);">Local (PH)</button>
+            <button onclick="confirmCallback('intl'); closeConfirm();" style="background:var(--text);">International</button>
+            <button onclick="closeConfirm()" style="background:none; color:var(--text-light); font-size:0.8rem;">Cancel</button>
         </div>
     </div>
+</div>
 
 <div id="invoice-modal" class="modal-overlay hidden">
     <div class="modal-content" style="max-width: 500px;">
@@ -223,8 +227,8 @@
         </div>
 
         <div id="invoice-actions" style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
-            <button onclick="downloadOrderSheet()" style="background:var(--success); width:100%;">Save Order Sheet (PNG)</button>
-            <button onclick="proceedToCheckout()" style="background:var(--primary); width:100%;">Proceed to Google Form</button>
+            <button onclick="downloadOrderSheet()" style="background:var(--success); width:100%;">Save Order Sheet</button>
+            <button onclick="proceedToCheckout()" style="background:var(--primary); width:100%;">Proceed to Check Out</button>
             <button onclick="closeModals()" style="background:#eee; color:#555; width:100%;">Close</button>
         </div>
     </div>
@@ -356,6 +360,7 @@
         let editingIdx = null;
         let tempQty = 0;
         let currentSlide = 0;
+        let hasDownloadedSheet = false;
 
         // --- INITIALIZATION ---
         async function loadAllData() {
@@ -386,8 +391,19 @@
         }
 
         let confirmCallback = null;
-        function customConfirm(msg, callback) {
+        function customConfirm(msg, callback, isShipping = false) {
             document.getElementById('confirm-msg').innerText = msg;
+            const standard = document.getElementById('confirm-standard-btns');
+            const shipping = document.getElementById('confirm-shipping-btns');
+            
+            if (isShipping) {
+                standard.classList.add('hidden');
+                shipping.classList.remove('hidden');
+            } else {
+                standard.classList.remove('hidden');
+                shipping.classList.add('hidden');
+            }
+            
             document.getElementById('confirm-panel').classList.remove('hidden');
             confirmCallback = callback;
         }
@@ -660,6 +676,7 @@
         }
 
         function showInvoice() {
+            hasDownloadedSheet = false;
             const listCon = document.getElementById('invoice-items-list');
             if (!listCon) return;
             
@@ -702,12 +719,30 @@
                 link.download = `order-${Date.now()}.png`;
                 link.href = canvas.toDataURL();
                 link.click();
+                
+                hasDownloadedSheet = true; // Mark as downloaded
                 notify("Order Sheet Saved!");
             });
         }
-
+        
         function proceedToCheckout() {
-            window.open('https://docs.google.com/forms/d/e/YOUR_FORM_ID/viewform', '_blank');
+            // 1. Check if they downloaded the sheet first
+            if (!hasDownloadedSheet) {
+                notify("Please download the order sheet.", "⚠️");
+                return;
+            }
+        
+            // 2. If downloaded, show the Destination Selection
+            customConfirm("Where are you ordering from?", (choice) => {
+                const localURL = "https://docs.google.com/forms/d/e/1FAIpQLSdLMu09mL10Gh6BGKQaY3Oa0iJnw2esAbpeVw_d7nrrhnZu2Q/viewform?usp=sharing&ouid=101835408618855772238";
+                const intlURL = "https://docs.google.com/forms/d/e/1FAIpQLSfQ4-Po8E5xW_XyYnB9yFE53qYucCIGBmwzHZTpyKBOVWFHkA/viewform?usp=sharing&ouid=101835408618855772238";
+                
+                if (choice === 'local') {
+                    window.open(localURL, '_blank');
+                } else {
+                    window.open(intlURL, '_blank');
+                }
+            }, true); // We'll add a 'true' flag here to tell our confirm panel to show 2 custom buttons
         }
 
         function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
@@ -791,6 +826,7 @@
         }
         
     </script>
+
 
 
 
