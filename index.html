@@ -355,7 +355,10 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // --- STATE VARIABLES ---
-        let categories = ["Stickers", "Pins"];
+        let categories = {
+            "Stickers": ["Vinyl", "Holographic"],
+            "Pins": ["Enamel", "Acrylic"]
+        };
         let catalog = [];
         let shippingFees = {
             "Luzon": 85, "Visayas": 100, "Mindanao": 105,
@@ -414,6 +417,35 @@
                 renderSidebar('main-sidebar', false);
                 renderShop();
                 updateCartTotals();
+            }
+        }
+
+        function updateSubcatDropdown(selectedSub = "") {
+            const cat = document.getElementById('p-category').value;
+            const subSelect = document.getElementById('p-subcategory');
+            subSelect.innerHTML = '<option value="">(No Subcategory)</option>';
+            
+            if (categories[cat]) {
+                categories[cat].forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = opt.innerText = sub;
+                    if(sub === selectedSub) opt.selected = true;
+                    subSelect.appendChild(opt);
+                });
+            }
+        }
+        
+        function addNewSubcategory() {
+            const cat = document.getElementById('p-category').value;
+            const newSub = prompt(`Add new subcategory to ${cat}:`);
+            
+            if (newSub) {
+                if (!categories[cat]) categories[cat] = [];
+                if (!categories[cat].includes(newSub)) {
+                    categories[cat].push(newSub);
+                    updateSubcatDropdown(newSub);
+                    notify(`Added "${newSub}" to ${cat}`);
+                }
             }
         }
 
@@ -541,27 +573,66 @@
         function openAdminModal(idx = null) {
             editingIdx = idx;
             tempImages = idx !== null ? [...(catalog[idx].images || [])] : [];
+            
+            // Set text fields
             document.getElementById('p-title').value = idx !== null ? catalog[idx].name : "";
             document.getElementById('p-desc').value = idx !== null ? catalog[idx].description : "";
             document.getElementById('p-price').value = idx !== null ? catalog[idx].price : "";
             document.getElementById('p-stock').value = idx !== null ? catalog[idx].stock : "";
+        
+            // Generate Category Dropdown
+            const catSelect = document.createElement('select');
+            catSelect.id = 'p-category';
+            catSelect.onchange = () => updateSubcatDropdown();
+            Object.keys(categories).forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = opt.innerText = cat;
+                if (idx !== null && catalog[idx].category === cat) opt.selected = true;
+                catSelect.appendChild(opt);
+            });
+        
+            // Create Subcategory Container
+            const subContainer = document.createElement('div');
+            subContainer.style = "display: flex; gap: 8px; margin-bottom: 10px;";
+            subContainer.innerHTML = `
+                <select id="p-subcategory" style="flex: 1; margin: 0;"></select>
+                <button onclick="addNewSubcategory()" style="background: var(--text-light); white-space: nowrap;">+ Sub</button>
+            `;
+        
+            // Inject into Modal (Replace old fields or insert before description)
+            const modalBody = document.querySelector('#admin-modal .modal-content');
+            const oldInputs = document.querySelectorAll('.dynamic-cat-field');
+            oldInputs.forEach(el => el.remove()); // Clean up previous opens
+        
+            const titleInput = document.getElementById('p-title');
+            const catLabel = document.createElement('label');
+            catLabel.className = 'dynamic-cat-field';
+            catLabel.innerText = "Category & Subcategory";
+            catLabel.style = "font-size: 0.7rem; color: var(--text-light); display: block; margin-top: 10px;";
+            
+            catSelect.classList.add('dynamic-cat-field');
+            subContainer.classList.add('dynamic-cat-field');
+        
+            titleInput.after(catLabel, catSelect, subContainer);
+        
+            // Initial Subcategory Population
+            updateSubcatDropdown(idx !== null ? catalog[idx].subcategory : "");
+        
+            // Footer buttons logic
             const foot = document.getElementById('modal-footer');
             if (idx === null) {
-                foot.innerHTML = `
-                    <button onclick="saveProduct()" style="flex:1;">Upload Product</button>
-                    <button onclick="closeModals()" style="background:#eee; color:#555; flex:1;">Cancel</button>
-                `;
+                foot.innerHTML = `<button onclick="saveProduct()" style="flex:1;">Upload Product</button>
+                                  <button onclick="closeModals()" style="background:#eee; color:#555; flex:1;">Cancel</button>`;
             } else {
-                foot.innerHTML = `
-                    <div style="display: flex; flex-direction: column; width: 100%; gap: 10px;">
-                        <div style="display: flex; gap: 10px;">
-                            <button onclick="saveProduct()" style="flex:1;">Save Changes</button>
-                            <button onclick="closeModals()" style="background:#eee; color:#555; flex:1;">Discard Edit</button>
-                        </div>
-                        <button onclick="deleteItem(${idx})" style="background:var(--danger); width: 100%;">Delete Listing</button>
-                    </div>
-                `;
+                foot.innerHTML = `<div style="display:flex; flex-direction:column; width:100%; gap:10px;">
+                                    <div style="display:flex; gap:10px;">
+                                        <button onclick="saveProduct()" style="flex:1;">Save Changes</button>
+                                        <button onclick="closeModals()" style="background:#eee; color:#555; flex:1;">Discard</button>
+                                    </div>
+                                    <button onclick="deleteItem(${idx})" style="background:var(--danger);">Delete Listing</button>
+                                  </div>`;
             }
+            
             renderAdminImgPreviews();
             document.getElementById('admin-modal').classList.remove('hidden');
         }
@@ -624,7 +695,8 @@
                 price: parseFloat(document.getElementById('p-price').value) || 0,
                 stock: parseInt(document.getElementById('p-stock').value) || 0,
                 images: tempImages,
-                category: adminCurrentCategory,
+                category: document.getElementById('p-category').value, // Get from dropdown
+                subcategory: document.getElementById('p-subcategory').value, // New field
                 status: editingIdx !== null ? catalog[editingIdx].status : 'offline'
             };
             let idx = editingIdx;
@@ -844,4 +916,5 @@
     </script>
 </body>
 </html>
+
 
