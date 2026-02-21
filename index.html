@@ -726,22 +726,72 @@
 
         function openUserView(idx) {
             const item = catalog[idx];
-            tempQty = 0; currentSlide = 0;
+            tempQty = 0; 
+            currentSlide = 0;
+
+            // Set Text and UI
             document.getElementById('view-title').innerText = item.name;
             document.getElementById('view-desc').innerText = item.description || "";
             document.getElementById('view-price').innerText = `₱${item.price.toFixed(2)}`;
             document.getElementById('view-stock-count').innerText = item.stock;
-            const wrap = document.getElementById('slider-wrapper'); wrap.innerHTML = '';
-            if (item.images?.length > 0) item.images.forEach(img => wrap.innerHTML += `<img src="${img}">`);
+
+            // Slider Logic
+            const wrap = document.getElementById('slider-wrapper'); 
+            wrap.innerHTML = '';
+            if (item.images?.length > 0) {
+                item.images.forEach(img => {
+                    wrap.innerHTML += `<img src="${img}" style="width:100%; height:100%; object-fit:cover; flex-shrink:0;">`;
+                });
+            }
             wrap.style.transform = `translateX(0px)`;
+
+            // --- QUANTITY BUTTON CLICK HANDLERS ---
+            // Re-assigning the button logic specifically for this item
+            document.getElementById('qty-plus').onclick = () => {
+                if (tempQty < item.stock) {
+                    tempQty++;
+                    updateQtyDisplay(item);
+                } else {
+                    notify("Reached maximum stock", "⚠️");
+                }
+            };
+
+            document.getElementById('qty-minus').onclick = () => {
+                if (tempQty > 0) {
+                    tempQty--;
+                    updateQtyDisplay(item);
+                }
+            };
+
+            document.getElementById('add-to-cart-btn').onclick = () => {
+                if (tempQty > 0) {
+                    item.cartQty = (item.cartQty || 0) + tempQty;
+                    updateCartTotals();
+                    notify("Added to cart!", "🛒");
+                    closeModals();
+                } else {
+                    notify("Please add quantity", "☝️");
+                }
+            };
+
             updateQtyDisplay(item);
             document.getElementById('user-modal').classList.remove('hidden');
         }
 
         function updateQtyDisplay(item) {
-            document.getElementById('view-qty-display').innerText = tempQty;
+            const display = document.getElementById('view-qty-display');
+            const plusBtn = document.getElementById('qty-plus');
+            const minusBtn = document.getElementById('qty-minus');
+
+            if (display) display.innerText = tempQty;
+            
+            // Visual feedback: Disable buttons if they hit limits
+            if (minusBtn) minusBtn.style.opacity = tempQty <= 0 ? "0.3" : "1";
+            if (plusBtn) plusBtn.style.opacity = tempQty >= item.stock ? "0.3" : "1";
         }
+        
     </script>
+
 
 
 
