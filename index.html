@@ -361,17 +361,16 @@
             const item = catalog[idx];
             const newStatus = item.status === 'live' ? 'offline' : 'live';
             
-            // Update local state
             item.status = newStatus;
-            
-            // Sync to Supabase immediately
+          
             const { error } = await supabaseClient
                 .from('products')
                 .update({ status: newStatus })
                 .eq('id', item.id);
-        
+            
             if (!error) {
-                notify(`Product is now ${newStatus.toUpperCase()}`, isLive ? "👁️" : "👻");
+                // Corrected the variable name here
+                notify(`Product is now ${newStatus.toUpperCase()}`, newStatus === 'live' ? "👁️" : "👻");
                 renderAdminTable();
             } else {
                 notify("Update Failed", "❌");
@@ -430,13 +429,15 @@
                 images: tempImages,
                 category: adminCurrentCategory,
                 subcategory: document.getElementById('p-sub-select').value,
-                status: 'live'
                 status: editingIdx !== null ? catalog[editingIdx].status : 'live'
             };
-
-            if(editingIdx !== null) await supabaseClient.from('products').update(p).eq('id', catalog[editingIdx].id);
-            else await supabaseClient.from('products').insert([p]);
-
+        
+            if(editingIdx !== null) {
+                await supabaseClient.from('products').update(p).eq('id', catalog[editingIdx].id);
+            } else {
+                await supabaseClient.from('products').insert([p]);
+            }
+        
             await loadAllData();
             renderAdminTable();
             closeModals();
@@ -584,5 +585,6 @@
     </script>
 </body>
 </html>
+
 
 
