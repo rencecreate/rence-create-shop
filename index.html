@@ -543,33 +543,65 @@
 
         function renderShop() {
             const grid = document.getElementById('product-grid');
+            if (!grid) return;
             grid.innerHTML = '';
         
-            // Filter products by Category AND Subcategory
+            // 1. Handle the Subcategory Bar logic
+            let subBar = document.getElementById('subcategory-bar');
+            if (!subBar) {
+                subBar = document.createElement('div');
+                subBar.id = 'subcategory-bar';
+                // Styling to make it look like a row of pills
+                subBar.style = "display:flex; gap:10px; overflow-x:auto; padding:10px 20px; margin-bottom:15px; white-space:nowrap; -webkit-overflow-scrolling:touch;";
+                grid.parentNode.insertBefore(subBar, grid);
+            }
+        
+            const subs = categories[currentCategory] || [];
+            if (subs.length === 0) {
+                subBar.style.display = 'none';
+                currentSubcategory = ""; // Reset if category has no subs
+            } else {
+                subBar.style.display = 'flex';
+                subBar.innerHTML = '';
+                
+                // "All" Pill
+                const allBtn = createPill("All", currentSubcategory === "");
+                allBtn.onclick = () => { currentSubcategory = ""; renderShop(); };
+                subBar.appendChild(allBtn);
+        
+                // Subcategory Pills
+                subs.forEach(s => {
+                    const btn = createPill(s, currentSubcategory === s);
+                    btn.onclick = () => { 
+                        currentSubcategory = (currentSubcategory === s) ? "" : s; 
+                        renderShop(); 
+                    };
+                    subBar.appendChild(btn);
+                });
+            }
+        
+            // 2. Filter Products
             const filtered = catalog.filter(item => {
                 const matchesCat = item.category === currentCategory;
-                const matchesSub = currentSubcategory === "" || item.subcategory === currentSubcategory;
+                const matchesSub = !currentSubcategory || item.subcategory === currentSubcategory;
                 return matchesCat && matchesSub && item.status === 'live';
             });
         
-            // --- NEW: Render Subcategory Filter Bar ---
-            renderSubcategoryBar();
-        
+            // 3. Render Grid
             if (filtered.length === 0) {
-                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-light);">
-                    <p>Work in Progress...</p>
-                </div>`;
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:50px; color:var(--text-light);">No products found in this section.</div>`;
                 return;
             }
         
-            filtered.forEach((item) => {
-                const idx = catalog.findIndex(p => p === item);
+            filtered.forEach(item => {
+                const idx = catalog.findIndex(p => p.id === item.id);
                 const card = document.createElement('div');
                 card.className = 'product-card';
                 card.onclick = () => openUserModal(idx);
-                // ... rest of your existing card rendering logic ...
                 card.innerHTML = `
-                    <img src="${item.images[0] || ''}" alt="${item.name}">
+                    <div class="product-img-container">
+                        <img src="${item.images[0] || ''}" loading="lazy">
+                    </div>
                     <div class="product-info">
                         <div class="product-name">${item.name}</div>
                         <div class="product-price">₱${item.price.toLocaleString()}</div>
@@ -577,6 +609,16 @@
                 `;
                 grid.appendChild(card);
             });
+        }
+        
+        // Helper for the Pill buttons
+        function createPill(text, active) {
+            const b = document.createElement('button');
+            b.innerText = text;
+            b.style = `padding:8px 16px; border-radius:20px; border:none; cursor:pointer; font-size:0.85rem; transition:0.2s;
+                       background:${active ? 'var(--primary)' : '#e2e8f0'};
+                       color:${active ? 'white' : 'var(--text)'};`;
+            return b;
         }
 
         function renderAdminTable() {
@@ -990,7 +1032,27 @@
             }
         }
         
-        function deleteCategory(index) { customConfirm(`Delete "${categories[index]}"?`, () => { categories.splice(index, 1); adminCurrentCategory = categories[0] || ""; renderSidebar('admin-sidebar', true); renderAdminTable(); }); }
+        function deleteCategory(catName) {
+            customConfirm(`Delete the folder "${catName}"? This will not delete the products, but they will become unassigned.`, () => {
+                // Correct way to remove a key from an Object
+                delete categories[catName];
+                
+                // If we deleted the folder we were currently viewing, switch to the first available one
+                const remainingFolders = Object.keys(categories);
+                if (adminCurrentCategory === catName) {
+                    adminCurrentCategory = remainingFolders.length > 0 ? remainingFolders[0] : "";
+                }
+                if (currentCategory === catName) {
+                    currentCategory = remainingFolders.length > 0 ? remainingFolders[0] : "";
+                }
+        
+                renderSidebar('admin-sidebar', true);
+                renderAdminTable();
+                // Crucial: Sync changes to Supabase!
+                saveAdminChanges(); 
+                notify("Folder deleted");
+            });
+        }  
         
         function openUserView(idx) {
             const item = catalog[idx];
@@ -1034,6 +1096,7 @@
     </script>
 </body>
 </html>
+
 
 
 
