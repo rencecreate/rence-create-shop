@@ -372,22 +372,27 @@
         let tempQty = 0;
         let currentSlide = 0;
 
-        // --- INITIALIZATION ---
+       // --- INITIALIZATION ---
         async function loadAllData() {
             const { data: setts } = await supabaseClient.from('settings').select('*').single();
             if (setts) {
-                categories = setts.category_list || categories;
+                // Ensure categories is an object. If it's an array or null, default to {}
+                categories = (setts.category_list && !Array.isArray(setts.category_list)) 
+                             ? setts.category_list 
+                             : {};
                 shippingFees = setts.shipping_rates || shippingFees;
             }
+        
             const { data: prods } = await supabaseClient.from('products').select('*');
             if (prods) {
                 catalog = prods.map(p => ({ ...p, cartQty: 0 }));
             }
-            currentCategory = categories[0];
-            adminCurrentCategory = categories[0];
+        
+            // Set defaults for the UI
+            const firstCat = Object.keys(categories)[0] || "";
+            currentCategory = firstCat;
+            adminCurrentCategory = firstCat;
         }
-
-        loadAllData();
 
         function notify(text, icon = "✨") {
             const alertBox = document.getElementById('custom-alert');
@@ -451,11 +456,12 @@
 
        function renderSidebar(targetId, isAdmin) {
             const sidebar = document.getElementById(targetId);
-            
+            if (!sidebar) return;
+        
             // 1. SAVE SCROLL POSITION
-            // We check if the scroll element exists yet; if it does, we save the position
             const oldScrollElement = sidebar.querySelector('.sidebar-scroll');
             const savedScrollLeft = oldScrollElement ? oldScrollElement.scrollLeft : 0;
+            const savedScrollTop = oldScrollElement ? oldScrollElement.scrollTop : 0;
             
             // 2. CLEAR AND REBUILD HEADERS
             sidebar.innerHTML = '<h3 style="font-size:0.75rem; text-transform:uppercase; color:var(--text-light); margin-bottom:10px;">Menu</h3>';
@@ -464,25 +470,26 @@
             const scrollDiv = document.createElement('div');
             scrollDiv.className = 'sidebar-scroll';
             
-            // 4. GENERATE THE BUTTONS
-            categories.forEach((cat, index) => {
+            // 4. GENERATE THE BUTTONS USING OBJECT KEYS
+            // We use Object.keys because 'categories' is now an object { "CatName": ["Sub1", "Sub2"] }
+            Object.keys(categories).forEach((catName) => {
                 const row = document.createElement('div');
                 row.style = "display:flex; align-items:center; gap:5px; margin-bottom:8px;";
                 
                 const btn = document.createElement('button');
-                // Check if this button should look "active" based on who is viewing it (User vs Admin)
-                const isActive = isAdmin ? (adminCurrentCategory === cat) : (currentCategory === cat);
+                // Check active state based on current selection
+                const isActive = isAdmin ? (adminCurrentCategory === catName) : (currentCategory === catName);
                 
                 btn.className = `sidebar-btn ${isActive ? 'active' : ''}`;
-                btn.innerText = cat;
+                btn.innerText = catName;
                 
                 btn.onclick = () => {
                     if (isAdmin) { 
-                        adminCurrentCategory = cat; 
+                        adminCurrentCategory = catName; 
                         renderSidebar('admin-sidebar', true); 
                         renderAdminTable(); 
                     } else { 
-                        currentCategory = cat; 
+                        currentCategory = catName; 
                         renderSidebar('main-sidebar', false); 
                         renderShop(); 
                     }
@@ -490,12 +497,13 @@
                 
                 row.appendChild(btn);
                 
-                // If Admin is viewing, add the "X" delete button next to the category
+                // If Admin is viewing, add the delete button
                 if (isAdmin) {
                     const del = document.createElement('button');
                     del.innerHTML = "×";
                     del.style = "background:#fee2e2; color:var(--danger); width:35px; border-radius:10px; font-weight:bold; height:40px; border:none; cursor:pointer;";
-                    del.onclick = () => deleteCategory(index);
+                    // We pass the catName (string) instead of index
+                    del.onclick = () => deleteCategory(catName);
                     row.appendChild(del);
                 }
                 
@@ -504,7 +512,30 @@
             
             sidebar.appendChild(scrollDiv);
             
+            // 5. RESTORE SCROLL POSITION
             scrollDiv.scrollLeft = savedScrollLeft;
+            scrollDiv.scrollTop = savedScrollTop;
+        }
+        
+        // Updated Delete Function to match the new Object structure
+        function deleteCategory(catName) {
+            customConfirm(`Delete the folder "${catName}" and all its subcategories?`, () => {
+                // Remove the key from the object
+                delete categories[catName];
+                
+                // Reset the active category to the first available one if current was deleted
+                const remainingKeys = Object.keys(categories);
+                if (adminCurrentCategory === catName) {
+                    adminCurrentCategory = remainingKeys.length > 0 ? remainingKeys[0] : "";
+                }
+                if (currentCategory === catName) {
+                    currentCategory = remainingKeys.length > 0 ? remainingKeys[0] : "";
+                }
+                
+                renderSidebar('admin-sidebar', true);
+                renderAdminTable();
+                notify(`Deleted folder: ${catName}`, "🗑️");
+            });
         }
 
         function renderShop() {
@@ -868,10 +899,20 @@
                 document.getElementById('upload-progress-container').classList.add('hidden');
             }
         }
+        
         function addCategory() {
             const val = document.getElementById('new-cat-input').value.trim();
-            if(val && !categories.includes(val)) { categories.push(val); document.getElementById('new-cat-input').value = ""; renderSidebar('admin-sidebar', true); notify("Folder Created"); }
+            // Check if the name exists and isn't already a key in our object
+            if (val && !categories[val]) { 
+                categories[val] = []; // Create a new category with an empty subcategory list
+                document.getElementById('new-cat-input').value = ""; 
+                renderSidebar('admin-sidebar', true); 
+                notify("Folder Created: " + val); 
+            } else if (categories[val]) {
+                notify("Folder already exists!", "⚠️");
+            }
         }
+        
         function deleteCategory(index) { customConfirm(`Delete "${categories[index]}"?`, () => { categories.splice(index, 1); adminCurrentCategory = categories[0] || ""; renderSidebar('admin-sidebar', true); renderAdminTable(); }); }
         
         function openUserView(idx) {
@@ -916,5 +957,6 @@
     </script>
 </body>
 </html>
+
 
 
