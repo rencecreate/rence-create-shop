@@ -265,10 +265,43 @@
             Object.keys(categories).forEach(cat => {
                 const item = document.createElement('div');
                 item.style = "display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #eee; font-family:'Unbounded'; font-size:0.7rem;";
-                item.innerHTML = `<span>${cat} (${categories[cat].length} sub)</span>
-                    <button onclick="mgrDelFolder('${cat}')" style="color:red; background:none; border:none; cursor:pointer;">REMOVE</button>`;
+                item.innerHTML = `
+                    <span>${cat} (${categories[cat].length} sub)</span>
+                    <div>
+                        <button onclick="mgrRenameFolder('${cat}')" style="color:var(--primary); background:none; border:none; cursor:pointer; margin-right:10px;">RENAME</button>
+                        <button onclick="mgrDelFolder('${cat}')" style="color:red; background:none; border:none; cursor:pointer;">REMOVE</button>
+                    </div>`;
                 con.appendChild(item);
             });
+        }
+
+        async function mgrRenameFolder(oldName) {
+            const newName = prompt("Enter new name for '" + oldName + "':", oldName);
+            
+            if (!newName || newName === oldName) return;
+        
+            // 1. Transfer the subcategories to the new key
+            categories[newName] = categories[oldName];
+            delete categories[oldName];
+        
+            // 2. Update all products in the catalog that belonged to the old category
+            catalog.forEach(product => {
+                if (product.category === oldName) {
+                    product.category = newName;
+                }
+            });
+        
+            // 3. Update UI
+            if (adminCurrentCategory === oldName) {
+                adminCurrentCategory = newName;
+                document.getElementById('active-folder-name').innerText = newName;
+            }
+        
+            renderCategoryManager();
+            renderSidebar('admin-sidebar', true);
+            renderAdminTable();
+            
+            notify("Category renamed and products updated!");
         }
 
         async function mgrAddFolder() {
@@ -297,16 +330,53 @@
         function renderAdminTable() {
             const list = document.getElementById('admin-list');
             list.innerHTML = '';
-            catalog.filter(i => i.category === adminCurrentCategory).forEach((item, idx) => {
+            
+            catalog.filter(i => i.category === adminCurrentCategory).forEach((item) => {
                 const actualIdx = catalog.indexOf(item);
+                // Determine button style based on status
+                const isLive = item.status === 'live';
+                const statusColor = isLive ? 'var(--accent)' : '#ff4444';
+                const statusText = isLive ? 'LIVE' : 'OFFLINE';
+        
                 list.innerHTML += `<tr>
                     <td>${item.name}</td>
                     <td>${item.subcategory || '-'}</td>
                     <td>₱${item.price}</td>
                     <td>${item.stock}</td>
-                    <td><button onclick="openAdminModal(${actualIdx})" style="cursor:pointer; font-family:'Unbounded'; font-size:0.5rem;">EDIT</button></td>
+                    <td>
+                        <button onclick="toggleStatus(${actualIdx})" 
+                                style="cursor:pointer; font-family:'Unbounded'; font-size:0.5rem; background:${statusColor}; border:1px solid #000; padding:4px 8px; font-weight:900;">
+                            ${statusText}
+                        </button>
+                        <button onclick="openAdminModal(${actualIdx})" 
+                                style="cursor:pointer; font-family:'Unbounded'; font-size:0.5rem; margin-left:5px;">
+                            EDIT
+                        </button>
+                    </td>
                 </tr>`;
             });
+        }
+
+        async function toggleStatus(idx) {
+            const item = catalog[idx];
+            const newStatus = item.status === 'live' ? 'offline' : 'live';
+            
+            // Update local state
+            item.status = newStatus;
+            
+            // Sync to Supabase immediately
+            const { error } = await supabaseClient
+                .from('products')
+                .update({ status: newStatus })
+                .eq('id', item.id);
+        
+            if (!error) {
+                notify(`Product is now ${newStatus.toUpperCase()}`, isLive ? "👁️" : "👻");
+                renderAdminTable();
+            } else {
+                notify("Update Failed", "❌");
+                console.error(error);
+            }
         }
 
         // --- PRODUCT SYSTEM ---
@@ -361,6 +431,7 @@
                 category: adminCurrentCategory,
                 subcategory: document.getElementById('p-sub-select').value,
                 status: 'live'
+                status: editingIdx !== null ? catalog[editingIdx].status : 'live'
             };
 
             if(editingIdx !== null) await supabaseClient.from('products').update(p).eq('id', catalog[editingIdx].id);
@@ -513,4 +584,5 @@
     </script>
 </body>
 </html>
+
 
