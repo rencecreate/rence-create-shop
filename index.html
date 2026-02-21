@@ -202,41 +202,33 @@
         </div>
     </div>
 
-    <div id="invoice-modal" class="modal-overlay hidden">
-        <div class="modal-content" id="printable-order-sheet" style="max-width: 600px; position: relative; background: white;">
-            <h2 style="margin-top:0; border-bottom: 2px solid var(--primary); padding-bottom: 10px;">Order Sheet</h2>
-            <div id="invoice-items-list" style="margin-bottom: 20px;"></div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: end;">
-                <div>
-                    <label style="font-weight: 600; font-size: 0.85rem; color: var(--text-light);">REGION</label>
-                    <select id="region-select" onchange="calculateGrandTotal()">
-                        <option value="">Select Region...</option>
-                        <optgroup label="Local" id="local-opts"></optgroup>
-                        <optgroup label="International" id="intl-opts"></optgroup>
-                    </select>
-                    <div class="note-text">* Please select a region to estimate your shipping fee.</div>
-                </div>
-                <div class="invoice-summary">
-                    <div>Subtotal: <span id="inv-subtotal">₱0.00</span></div>
-                    <div>Shipping: <span id="inv-shipping">₱0.00</span></div>
-                    <div class="grand-total" id="inv-grand">₱0.00</div>
-                </div>
+<div id="invoice-modal" class="modal-overlay hidden">
+    <div class="modal-content" style="max-width: 500px;">
+        <div id="printable-order-sheet" style="padding: 20px; background: white; border-radius: 15px;">
+            <h2 style="text-align:center; margin-bottom:5px;">ORDER SHEET</h2>
+            <p id="invoice-date" style="text-align:center; font-size:0.8rem; color:var(--text-light); margin-bottom:20px;"></p>
+            
+            <div id="invoice-items-list"></div>
+            
+            <hr style="border:none; border-top:1px dashed #ddd; margin:15px 0;">
+            
+            <div style="display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem; margin-bottom:10px;">
+                <span>Subtotal:</span>
+                <span id="inv-subtotal">₱0.00</span>
             </div>
-            <div class="note-text" style="margin-top: 20px; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 10px;">
-                Please ensure you have downloaded your Order Sheet before proceeding. This document is required to complete your order submission.
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 25px;" id="invoice-actions">
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="downloadOrderSheet()" style="background: var(--text); flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <span>📥</span> Download Order Sheet
-                    </button>
-                    <button onclick="proceedToCheckout()" style="flex: 1; background: var(--success);">Proceed to Checkout</button>
-                </div>
-                <button onclick="closeModals()" style="background: #eee; color: #555; width: 100%;">Back to Shop</button>
+
+            <div style="padding:15px; background:#f8fafc; border-radius:10px; border:1px dashed #cbd5e1; text-align:center; color:var(--text-light); font-size:0.85rem; margin-top:10px;">
+                Note: shipping fee will reflect once the order form is submitted.
             </div>
         </div>
-    </div>
 
+        <div id="invoice-actions" style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+            <button onclick="downloadOrderSheet()" style="background:var(--success); width:100%;">Save Order Sheet (PNG)</button>
+            <button onclick="proceedToCheckout()" style="background:var(--primary); width:100%;">Proceed to Google Form</button>
+            <button onclick="closeModals()" style="background:#eee; color:#555; width:100%;">Close</button>
+        </div>
+    </div>
+</div>
     <div id="login-page">
         <div style="display: flex; justify-content: center; align-items: center; height: 100vh;">
             <div class="admin-card" style="width: 350px; text-align: center;">
@@ -669,29 +661,37 @@
 
         function showInvoice() {
             const listCon = document.getElementById('invoice-items-list');
+            if (!listCon) return;
+            
             listCon.innerHTML = '';
             let subtotal = 0;
+            let hasItems = false;
+        
+            // Set current date
+            document.getElementById('invoice-date').innerText = new Date().toLocaleString();
+        
             catalog.forEach((item, index) => {
                 if (item.cartQty > 0) {
+                    hasItems = true;
                     const itemTotal = item.cartQty * item.price;
                     subtotal += itemTotal;
                     listCon.innerHTML += `
-                        <div class="invoice-item">
-                            <div style="flex:1;"><b>${item.name}</b><br>₱${item.price.toFixed(2)} x ${item.cartQty}</div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px; font-size:0.9rem;">
+                            <div style="flex:1;">
+                                <span style="font-weight:700;">${item.name}</span><br>
+                                <small style="color:var(--text-light);">₱${item.price.toFixed(2)} x ${item.cartQty}</small>
+                            </div>
                             <div style="font-weight:700;">₱${itemTotal.toFixed(2)}</div>
                         </div>`;
                 }
             });
-            document.getElementById('inv-subtotal').innerText = `₱${subtotal.toFixed(2)}`;
-            // Update the UI to show the note instead of region select
-            const shippingArea = document.querySelector('.invoice-shipping-section');
-            if (shippingArea) {
-                shippingArea.innerHTML = `
-                    <div style="padding:15px; background:#f8fafc; border-radius:10px; border:1px dashed #cbd5e1; text-align:center; color:var(--text-light); font-size:0.85rem;">
-                        Note: shipping fee will reflect once the order form is submitted.
-                    </div>
-                `;
+        
+            if (!hasItems) {
+                notify("Your cart is empty!", "🛒");
+                return;
             }
+        
+            document.getElementById('inv-subtotal').innerText = `₱${subtotal.toFixed(2)}`;
             document.getElementById('invoice-modal').classList.remove('hidden');
         }
 
@@ -791,6 +791,7 @@
         }
         
     </script>
+
 
 
 
