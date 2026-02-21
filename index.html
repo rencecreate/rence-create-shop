@@ -10,170 +10,70 @@
     
     <style>
         :root {
-            --bg: #f4f4f4;
-            --black: #000000;
-            --accent: #00ff66; /* Electric Green */
-            --white: #ffffff;
-            --primary: #0062ff;
-            --border-width: 3px;
+            --bg: #f4f4f4; --black: #000000; --accent: #00ff66; --white: #ffffff;
+            --primary: #0062ff; --border-width: 3px;
             --shadow-subtle: 6px 6px 0px var(--black);
             --shadow-heavy: 12px 12px 0px var(--black);
             --transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         * { box-sizing: border-box; }
-        body {
-            font-family: 'Unbounded', sans-serif;
-            background-color: var(--bg);
-            color: var(--black);
-            margin: 0;
-            min-height: 100vh;
-            overflow-x: hidden;
-            line-height: 1.4;
-        }
-
+        body { font-family: 'Unbounded', sans-serif; background-color: var(--bg); color: var(--black); margin: 0; min-height: 100vh; overflow-x: hidden; }
         h1, h2, h3, .classy { font-family: 'Fraunces', serif; font-style: italic; font-weight: 400; }
+        .logo { font-family: 'Unbounded', sans-serif; font-size: 1.4rem; font-weight: 900; letter-spacing: -1.5px; text-decoration: none; color: var(--black); }
 
-        /* --- UI COMPONENTS --- */
         header {
-            position: sticky;
-            top: 20px;
-            z-index: 100;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 30px;
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(15px);
-            border: var(--border-width) solid var(--black);
-            margin: 0 20px;
-            box-shadow: var(--shadow-subtle);
+            position: sticky; top: 20px; z-index: 100; display: flex; justify-content: space-between;
+            align-items: center; padding: 12px 30px; background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(15px); border: var(--border-width) solid var(--black);
+            margin: 0 20px; box-shadow: var(--shadow-subtle);
         }
-
-        .logo { font-size: 1.4rem; font-weight: 900; letter-spacing: -1.5px; text-decoration: none; color: var(--black); }
 
         .container { max-width: 1300px; margin: 0 auto; padding: 40px 20px; }
-
-        /* --- PRODUCT GRID --- */
-        .art-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 40px;
-        }
-
-        .art-card {
-            border: var(--border-width) solid var(--black);
-            background: var(--white);
-            padding: 15px;
-            transition: var(--transition);
-            cursor: pointer;
-        }
-
+        .art-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 40px; }
+        .art-card { border: var(--border-width) solid var(--black); background: var(--white); padding: 15px; transition: var(--transition); cursor: pointer; }
         .art-card:hover { transform: translate(-8px, -8px); box-shadow: var(--shadow-heavy); }
-
-        .img-container {
-            width: 100%;
-            aspect-ratio: 1/1;
-            border: 2px solid var(--black);
-            background: #e8e8e8;
-            overflow: hidden;
-        }
-
+        .img-container { width: 100%; aspect-ratio: 1/1; border: 2px solid var(--black); background: #e8e8e8; overflow: hidden; position: relative; }
         .img-container img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* --- NAVIGATION PILLS --- */
         .sidebar-scroll { display: flex; gap: 15px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
-        .folder-link {
-            font-weight: 900;
-            text-transform: uppercase;
-            cursor: pointer;
-            font-size: 1.1rem;
-            white-space: nowrap;
-            border-bottom: 4px solid transparent;
-            transition: var(--transition);
-        }
+        .folder-link { font-weight: 900; text-transform: uppercase; cursor: pointer; font-size: 1.1rem; border-bottom: 4px solid transparent; white-space: nowrap; }
         .folder-link.active { border-bottom-color: var(--accent); }
 
-        .sub-pill {
-            padding: 6px 18px;
-            border: 2px solid var(--black);
-            border-radius: 50px;
-            font-size: 0.65rem;
-            font-weight: 900;
-            background: transparent;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .sub-pill.active { background: var(--black); color: var(--white); }
-
-        /* --- MODALS --- */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(5px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-        }
-
-        .checkout-card {
-            background: var(--white);
-            border: var(--border-width) solid var(--black);
-            width: 100%;
-            max-width: 500px;
-            padding: 30px;
-            box-shadow: 15px 15px 0px var(--accent);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .btn-action {
-            width: 100%; padding: 18px; background: var(--black); color: var(--white);
-            font-family: 'Unbounded'; font-weight: 900; text-transform: uppercase;
-            border: none; cursor: pointer; margin-top: 10px; transition: var(--transition);
-        }
-
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .checkout-card { background: var(--white); border: var(--border-width) solid var(--black); width: 100%; max-width: 500px; padding: 30px; box-shadow: 15px 15px 0px var(--accent); max-height: 90vh; overflow-y: auto; }
+        
+        .btn-action { width: 100%; padding: 18px; background: var(--black); color: var(--white); font-family: 'Unbounded'; font-weight: 900; text-transform: uppercase; border: none; cursor: pointer; margin-top: 10px; transition: var(--transition); display: block; text-align: center; text-decoration: none; }
         .btn-action:hover { transform: translate(-3px, -3px); box-shadow: 5px 5px 0px var(--accent); }
-        .btn-download { background: var(--accent); color: var(--black); border: 3px solid var(--black); }
+        
+        footer { margin-top: 100px; padding: 80px 40px; background: var(--black); color: var(--white); display: flex; justify-content: space-between; align-items: center; }
+        .est-tag { font-weight: 900; font-size: 1.2rem; }
 
         .hidden { display: none !important; }
-
-        /* --- NOTIFICATION --- */
-        #custom-alert {
-            position: fixed; bottom: 30px; right: 30px; background: var(--black); color: white;
-            padding: 15px 25px; border: 2px solid var(--accent); transform: translateY(150%);
-            transition: 0.5s; z-index: 9999;
-        }
+        #custom-alert { position: fixed; bottom: 30px; right: 30px; background: var(--black); color: white; padding: 15px 25px; border: 2px solid var(--accent); transform: translateY(150%); transition: 0.5s; z-index: 9999; }
         #custom-alert.show { transform: translateY(0); }
 
-        /* --- ADMIN DASHBOARD --- */
-        .admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.8rem; }
-        .admin-table td, .admin-table th { padding: 12px; border: 1px solid #ddd; text-align: left; }
-        input, select, textarea { 
-            width: 100%; padding: 12px; border: 2px solid var(--black); 
-            font-family: 'Unbounded'; margin-bottom: 10px; font-size: 0.8rem;
-        }
+        .admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        .admin-table td, .admin-table th { padding: 12px; border: 2px solid var(--black); text-align: left; }
+        input, select, textarea { width: 100%; padding: 12px; border: 2px solid var(--black); font-family: 'Unbounded'; margin-bottom: 10px; background: white; }
+        
+        .preview-img-slot { position: relative; width: 100%; aspect-ratio: 1/1; border: 1px solid #000; }
+        .del-img { position: absolute; top: 2px; right: 2px; background: red; color: white; border: none; cursor: pointer; font-size: 10px; }
     </style>
 </head>
 <body>
 
-    <div id="custom-alert">
-        <span id="alert-icon">✨</span> <span id="alert-text">Action Successful</span>
-    </div>
+    <div id="custom-alert"><span id="alert-icon">✨</span> <span id="alert-text"></span></div>
 
     <div id="login-page">
         <div style="display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px;">
             <div class="checkout-card" style="max-width: 400px; text-align: center;">
                 <h1 class="logo">RENCE CREATE</h1>
-                <p class="classy">Enter your name to browse the gallery</p>
+                <p class="classy">Enter your name to browse</p>
                 <input type="text" id="username-input" placeholder="Your Name">
                 <button class="btn-action" onclick="enterStore()">ENTER GALLERY</button>
                 <hr style="margin: 25px 0; border: 1px dashed #000;">
-                <button onclick="showAdminLogin()" style="background:none; border:none; cursor:pointer; font-size: 0.7rem; font-weight: 900; text-decoration: underline;">ADMIN/STUDIO ACCESS</button>
+                <button onclick="showAdminLogin()" style="background:none; border:none; cursor:pointer; font-size: 0.7rem; font-weight: 900; text-decoration: underline; font-family: 'Unbounded';">ADMIN ACCESS</button>
             </div>
         </div>
     </div>
@@ -181,10 +81,10 @@
     <div id="admin-login-modal" class="modal-overlay hidden">
         <div class="checkout-card" style="max-width: 350px;">
             <h2 class="classy">Studio Login</h2>
-            <input type="text" id="admin-user" placeholder="Username">
+            <input type="text" id="admin-user" placeholder="Admin Username">
             <input type="password" id="admin-pass" placeholder="Password">
             <button class="btn-action" onclick="attemptAdminLogin()">UNLOCK STUDIO</button>
-            <button onclick="closeModals()" style="width: 100%; background: none; border: none; margin-top: 10px; cursor: pointer; font-size: 0.7rem; font-weight: 900;">CANCEL</button>
+            <button onclick="closeModals()" style="width:100%; background:none; border:none; margin-top:10px; cursor:pointer; font-family:'Unbounded'; font-size:0.6rem;">CANCEL</button>
         </div>
     </div>
 
@@ -193,103 +93,122 @@
             <div class="logo">RENCE CREATE</div>
             <button class="btn-action" onclick="showInvoice()" style="width: auto; padding: 10px 15px; margin: 0; font-size: 0.7rem;">BAG (<span id="cart-qty-total">0</span>)</button>
         </header>
-
         <div class="container">
-            <div id="welcome-msg" style="font-size: 0.7rem; font-weight: 900; margin-bottom: 20px; opacity: 0.6;"></div>
             <div class="sidebar-scroll" id="main-sidebar"></div>
-            <div id="subcategory-bar" style="display: flex; gap: 10px; margin: 10px 0 30px 0; overflow-x: auto; padding-bottom: 10px;"></div>
+            <div id="subcategory-bar" style="display: flex; gap: 10px; margin-bottom: 30px; overflow-x: auto; padding-bottom: 5px;"></div>
             <div id="shop-grid" class="art-grid"></div>
         </div>
+        <footer>
+            <div class="est-tag">EST. 2026 BATANGAS. PH</div>
+            <div style="text-align:right; font-size:0.7rem; opacity:0.6; line-height:1.5; font-family:'Unbounded';">HANDCRAFTED ART<br>ALL RIGHTS RESERVED</div>
+        </footer>
     </div>
 
     <div id="admin-page" class="hidden">
         <div class="container">
             <div class="checkout-card" style="max-width: 100%; box-shadow: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h2 class="classy">STUDIO MANAGER</h2>
-                    <button class="btn-action" onclick="window.location.reload()" style="width:auto; padding: 5px 15px; font-size: 0.7rem;">EXIT STUDIO</button>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2 class="classy">STUDIO DASHBOARD</h2>
+                    <button onclick="location.reload()" style="background:none; border:2px solid #000; padding:5px 10px; cursor:pointer; font-family:'Unbounded'; font-size:0.6rem;">LOGOUT</button>
                 </div>
                 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
-                    <div style="border: 2px solid #000; padding: 15px;">
-                        <h4 style="margin:0 0 10px 0;">+ New Folder</h4>
-                        <div style="display: flex; gap: 5px;">
-                            <input type="text" id="mgr-new-cat" style="margin:0;">
-                            <button class="btn-action" onclick="mgrAddFolder()" style="margin:0; width:auto; padding: 0 15px;">ADD</button>
+                    <div style="border: 2px solid #000; padding: 15px; background: #fff;">
+                        <h4 style="margin:0 0 10px 0; font-family:'Unbounded'; font-size:0.8rem;">Folder Management</h4>
+                        <input type="text" id="mgr-new-cat" placeholder="New Folder Name">
+                        <button class="btn-action" onclick="mgrAddFolder()" style="margin:0; padding:10px;">ADD FOLDER</button>
+                        
+                        <div id="admin-subcat-manager" style="margin-top: 15px; border-top: 2px solid #000; padding-top: 15px;">
+                            <small style="font-family:'Unbounded'; font-size:0.6rem;">Subcategories for: <b id="active-folder-name">None</b></small>
+                            <input type="text" id="mgr-new-sub" placeholder="New Subcategory" style="margin-top:5px;">
+                            <button class="btn-action" onclick="mgrAddSub()" style="margin:0; padding:10px; background:var(--primary);">ADD SUBCAT</button>
                         </div>
                     </div>
-                    <div id="mgr-list" style="border: 2px solid #000; padding: 15px; max-height: 150px; overflow-y: auto;"></div>
+                    <div id="mgr-list" style="border: 2px solid #000; padding: 15px; max-height: 250px; overflow-y: auto; background:#fff;"></div>
                 </div>
 
                 <div class="sidebar-scroll" id="admin-sidebar"></div>
-                <button class="btn-action" onclick="openAdminModal()" style="background: var(--primary);">+ ADD NEW PRODUCT</button>
-                <button class="btn-action" onclick="saveAdminChanges()" style="background: var(--accent); color: #000;">SAVE GLOBAL SETTINGS</button>
+                <button class="btn-action" onclick="openAdminModal()" style="background: var(--primary); margin-bottom:10px;">+ ADD NEW PRODUCT</button>
+                <button class="btn-action" onclick="saveAdminChanges()" style="background: var(--accent); color: #000;">SAVE ALL SETTINGS</button>
                 
-                <table class="admin-table">
-                    <thead><tr><th>Product</th><th>Price</th><th>Stock</th><th>Status</th><th>Action</th></tr></thead>
-                    <tbody id="admin-list"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <div id="user-modal" class="modal-overlay hidden">
-        <div class="checkout-card">
-            <div id="slider-wrapper" class="img-container" style="margin-bottom: 15px;"></div>
-            <h2 id="view-title" class="classy" style="margin:0;"></h2>
-            <p id="view-desc" style="font-size: 0.8rem; margin: 15px 0; min-height: 50px;"></p>
-            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #000; padding-top: 15px;">
-                <h3 id="view-price" style="margin:0;"></h3>
-                <div style="display: flex; align-items: center; gap: 15px;">
-                    <button class="btn-action" id="qty-minus" style="width: 40px; margin:0; padding: 10px;">-</button>
-                    <span id="view-qty-display" style="font-weight: 900;">0</span>
-                    <button class="btn-action" id="qty-plus" style="width: 40px; margin:0; padding: 10px;">+</button>
+                <div style="overflow-x:auto;">
+                    <table class="admin-table">
+                        <thead><tr><th>Product</th><th>Subcategory</th><th>Price</th><th>Stock</th><th>Action</th></tr></thead>
+                        <tbody id="admin-list"></tbody>
+                    </table>
                 </div>
             </div>
-            <button id="add-to-cart-btn" class="btn-action">ADD TO BAG</button>
-            <button onclick="closeModals()" style="width: 100%; background: none; border: none; margin-top: 10px; cursor: pointer; font-size: 0.7rem; font-weight: 900;">CLOSE</button>
-        </div>
-    </div>
-
-    <div id="invoice-modal" class="modal-overlay hidden">
-        <div class="checkout-card">
-            <div id="printable-order-sheet" style="padding: 30px; border: 2px dashed #000; background: #fff;">
-                <h2 class="classy" style="text-align: center; margin: 0 0 20px 0;">ORDER SHEET</h2>
-                <div id="invoice-items-list"></div>
-                <hr style="border: none; border-top: 2px dashed #000; margin: 15px 0;">
-                <div style="display: flex; justify-content: space-between; font-weight: 900; font-size: 1.2rem;">
-                    <span>TOTAL</span>
-                    <span id="inv-subtotal">₱0.00</span>
-                </div>
-                <p style="font-size: 0.6rem; text-align: center; margin-top: 20px; font-style: italic;">Save this image to upload in the checkout form.</p>
-            </div>
-            <button class="btn-action btn-download" onclick="downloadOrderSheet()">1. SAVE ORDER SHEET (IMAGE)</button>
-            <button class="btn-action" onclick="proceedToCheckout()">2. GO TO CHECKOUT FORM</button>
-            <button onclick="closeModals()" style="width: 100%; background: none; border: none; margin-top: 10px; cursor: pointer; font-size: 0.7rem; font-weight: 900;">GO BACK</button>
         </div>
     </div>
 
     <div id="admin-modal" class="modal-overlay hidden">
         <div class="checkout-card">
-            <h2 class="classy" id="modal-title">Product Panel</h2>
+            <h2 class="classy">Product Details</h2>
             <input type="text" id="p-title" placeholder="Product Name">
-            <textarea id="p-desc" placeholder="Description"></textarea>
-            <div style="display: flex; gap: 10px;">
+            <textarea id="p-desc" placeholder="Description" style="height:80px;"></textarea>
+            <div style="display:flex; gap:10px;">
                 <input type="number" id="p-price" placeholder="Price">
                 <input type="number" id="p-stock" placeholder="Stock">
             </div>
-            <div id="admin-cat-fields"></div>
-            <div id="admin-img-previews" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px;"></div>
-            <input type="file" id="img-upload" multiple accept="image/*">
+            <label style="font-size:0.6rem; font-weight:900;">SUBCATEGORY</label>
+            <select id="p-sub-select"></select>
+            
+            <label style="font-size:0.6rem; font-weight:900;">IMAGES</label>
+            <div id="admin-img-previews" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom:10px;"></div>
+            <input type="file" id="img-upload" multiple accept="image/*" onchange="handleImgUpload(this)">
+            
             <button class="btn-action" onclick="saveProduct()">SAVE PRODUCT</button>
-            <button onclick="closeModals()" style="width: 100%; background: none; border: none; margin-top: 10px; cursor: pointer; font-size: 0.7rem; font-weight: 900;">CANCEL</button>
+            <button onclick="closeModals()" style="width:100%; background:none; border:none; margin-top:10px; cursor:pointer; font-family:'Unbounded'; font-size:0.6rem;">CANCEL</button>
+        </div>
+    </div>
+
+    <div id="user-modal" class="modal-overlay hidden">
+        <div class="checkout-card">
+            <div id="user-view-carousel" class="img-container"></div>
+            <h2 id="view-title" class="classy" style="margin:15px 0 5px 0;"></h2>
+            <p id="view-desc" style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 15px;"></p>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 2px solid #000; padding-top: 15px;">
+                <h3 id="view-price" style="margin:0;"></h3>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button class="btn-action" onclick="adjustQty(-1)" style="width: 40px; margin:0; padding:10px;">-</button>
+                    <span id="view-qty" style="font-weight: 900; width: 20px; text-align:center;">1</span>
+                    <button class="btn-action" onclick="adjustQty(1)" style="width: 40px; margin:0; padding:10px;">+</button>
+                </div>
+            </div>
+            <button id="add-to-cart-btn" class="btn-action">ADD TO BAG</button>
+            <button onclick="closeModals()" style="width:100%; background:none; border:none; margin-top:10px; cursor:pointer; font-family:'Unbounded'; font-size:0.6rem;">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="shipping-modal" class="modal-overlay hidden">
+        <div class="checkout-card" style="text-align:center;">
+            <h2 class="classy">Shipping Region</h2>
+            <p style="font-size:0.7rem; margin-bottom:20px;">Select your location to proceed to the correct checkout form.</p>
+            <button class="btn-action" onclick="finishCheckout('local')">LOCAL (PHILIPPINES)</button>
+            <button class="btn-action" onclick="finishCheckout('intl')" style="background:var(--accent); color:#000; border:2px solid #000;">INTERNATIONAL</button>
+            <button onclick="closeModals()" style="width:100%; background:none; border:none; margin-top:10px; cursor:pointer; font-family:'Unbounded'; font-size:0.6rem;">BACK</button>
+        </div>
+    </div>
+
+    <div id="invoice-modal" class="modal-overlay hidden">
+        <div class="checkout-card">
+            <div id="printable-sheet" style="padding:30px; border:2px dashed #000; background:#fff; color:#000;">
+                <h2 class="classy" style="text-align:center; margin-bottom:20px;">ORDER SHEET</h2>
+                <div id="invoice-list-items"></div>
+                <div style="display:flex; justify-content:space-between; font-weight:900; margin-top:20px; border-top:2px solid #000; padding-top:10px; font-size:1.2rem;">
+                    <span>TOTAL</span><span id="inv-total-amt">₱0.00</span>
+                </div>
+                <p style="font-size:0.5rem; text-align:center; margin-top:20px; font-family:'Unbounded';">EST. 2026 BATANGAS. PH</p>
+            </div>
+            <button class="btn-action btn-download" onclick="downloadOrderSheet()">1. SAVE AS IMAGE</button>
+            <button class="btn-action" onclick="openShippingModal()">2. CHOOSE SHIPPING & CHECKOUT</button>
+            <button onclick="closeModals()" style="width:100%; background:none; border:none; margin-top:10px; cursor:pointer; font-family:'Unbounded'; font-size:0.6rem;">BACK</button>
         </div>
     </div>
 
     <script>
-        // --- SUPABASE CONFIG ---
-        const SUPABASE_URL = 'https://wogftjsssxfhktgdfvod.supabase.co'; // Paste from CODE.txt
-        const SUPABASE_KEY = 'sb_publishable_9yJg8M-wrRXHMfuDnCtFkA_L3n1Ii36'; // Paste from CODE.txt
+        const SUPABASE_URL = ''; // Paste your Supabase URL
+        const SUPABASE_KEY = ''; // Paste your Supabase Key
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let categories = { "Stickers": [], "Pins": [] };
@@ -299,40 +218,36 @@
         let adminCurrentCategory = "";
         let tempImages = [];
         let editingIdx = null;
-        let tempQty = 0;
-        let hasDownloadedSheet = false;
+        let userViewIdx = null;
+        let tempQty = 1;
+        let sheetSaved = false;
 
         async function loadAllData() {
             const { data: setts } = await supabaseClient.from('settings').select('*').single();
             if (setts) categories = setts.category_list || { "Stickers": [], "Pins": [] };
-            
             const { data: prods } = await supabaseClient.from('products').select('*');
             if (prods) catalog = prods.map(p => ({ ...p, cartQty: 0 }));
             
-            const firstCat = Object.keys(categories)[0] || "";
-            currentCategory = firstCat;
-            adminCurrentCategory = firstCat;
+            const firstCat = Object.keys(categories)[0];
+            adminCurrentCategory = currentCategory = firstCat;
+            document.getElementById('active-folder-name').innerText = firstCat;
         }
 
         async function enterStore() {
             const name = document.getElementById('username-input').value;
-            if (!name) return notify("Please enter your name", "☝️");
+            if(!name) return notify("Please enter your name", "☝️");
             await loadAllData();
             document.getElementById('login-page').classList.add('hidden');
             document.getElementById('main-page').classList.remove('hidden');
-            document.getElementById('welcome-msg').innerText = `GREETINGS, ${name.toUpperCase()}`;
             renderSidebar('main-sidebar', false);
             renderShop();
         }
 
         function showAdminLogin() { document.getElementById('admin-login-modal').classList.remove('hidden'); }
-
         async function attemptAdminLogin() {
-            const user = document.getElementById('admin-user').value;
-            const pass = document.getElementById('admin-pass').value;
-
-            // Simple Hashed check: user "admin", pass "create2026"
-            if (user === "admin" && btoa(pass) === "Y3JlYXRlMjAyNg==") {
+            const u = document.getElementById('admin-user').value;
+            const p = document.getElementById('admin-pass').value;
+            if(u === "admin" && btoa(p) === "Y3JlYXRlMjAyNg==") {
                 await loadAllData();
                 closeModals();
                 document.getElementById('login-page').classList.add('hidden');
@@ -340,27 +255,139 @@
                 renderSidebar('admin-sidebar', true);
                 renderAdminTable();
                 renderCategoryManager();
-            } else {
-                notify("Invalid Credentials", "❌");
+            } else { notify("Invalid Credentials", "❌"); }
+        }
+
+        // --- ADMIN SYSTEM ---
+        function renderCategoryManager() {
+            const con = document.getElementById('mgr-list');
+            con.innerHTML = '';
+            Object.keys(categories).forEach(cat => {
+                const item = document.createElement('div');
+                item.style = "display:flex; justify-content:space-between; align-items:center; padding:8px; border-bottom:1px solid #eee; font-family:'Unbounded'; font-size:0.7rem;";
+                item.innerHTML = `<span>${cat} (${categories[cat].length} sub)</span>
+                    <button onclick="mgrDelFolder('${cat}')" style="color:red; background:none; border:none; cursor:pointer;">REMOVE</button>`;
+                con.appendChild(item);
+            });
+        }
+
+        async function mgrAddFolder() {
+            const val = document.getElementById('mgr-new-cat').value.trim();
+            if(!val) return;
+            categories[val] = [];
+            document.getElementById('mgr-new-cat').value = '';
+            renderCategoryManager();
+            renderSidebar('admin-sidebar', true);
+        }
+
+        async function mgrAddSub() {
+            const val = document.getElementById('mgr-new-sub').value.trim();
+            if(!val || !adminCurrentCategory) return;
+            categories[adminCurrentCategory].push(val);
+            document.getElementById('mgr-new-sub').value = '';
+            renderCategoryManager();
+            notify("Subcategory Added");
+        }
+
+        async function saveAdminChanges() {
+            await supabaseClient.from('settings').update({ category_list: categories }).eq('id', 1);
+            notify("Global Settings Saved!");
+        }
+
+        function renderAdminTable() {
+            const list = document.getElementById('admin-list');
+            list.innerHTML = '';
+            catalog.filter(i => i.category === adminCurrentCategory).forEach((item, idx) => {
+                const actualIdx = catalog.indexOf(item);
+                list.innerHTML += `<tr>
+                    <td>${item.name}</td>
+                    <td>${item.subcategory || '-'}</td>
+                    <td>₱${item.price}</td>
+                    <td>${item.stock}</td>
+                    <td><button onclick="openAdminModal(${actualIdx})" style="cursor:pointer; font-family:'Unbounded'; font-size:0.5rem;">EDIT</button></td>
+                </tr>`;
+            });
+        }
+
+        // --- PRODUCT SYSTEM ---
+        function openAdminModal(idx = null) {
+            editingIdx = idx;
+            const item = idx !== null ? catalog[idx] : { name:'', description:'', price:0, stock:0, images:[], subcategory:'' };
+            
+            document.getElementById('p-title').value = item.name;
+            document.getElementById('p-desc').value = item.description;
+            document.getElementById('p-price').value = item.price;
+            document.getElementById('p-stock').value = item.stock;
+            tempImages = [...item.images];
+
+            const sel = document.getElementById('p-sub-select');
+            sel.innerHTML = '<option value="">None</option>';
+            (categories[adminCurrentCategory] || []).forEach(s => {
+                sel.innerHTML += `<option value="${s}" ${item.subcategory === s ? 'selected' : ''}>${s}</option>`;
+            });
+
+            renderImgPreviews();
+            document.getElementById('admin-modal').classList.remove('hidden');
+        }
+
+        async function handleImgUpload(input) {
+            const files = Array.from(input.files);
+            for(const file of files) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    tempImages.push(e.target.result);
+                    renderImgPreviews();
+                };
+                reader.readAsDataURL(file);
             }
         }
 
-        // --- CORE UI RENDERING ---
-        function renderSidebar(targetId, isAdmin) {
-            const sidebar = document.getElementById(targetId);
-            sidebar.innerHTML = '';
-            Object.keys(categories).forEach(cat => {
-                const span = document.createElement('span');
-                const active = isAdmin ? (adminCurrentCategory === cat) : (currentCategory === cat);
-                span.className = `folder-link ${active ? 'active' : ''}`;
-                span.innerText = cat;
-                span.onclick = () => {
-                    if (isAdmin) { adminCurrentCategory = cat; renderSidebar('admin-sidebar', true); renderAdminTable(); }
-                    else { currentCategory = cat; currentSubcategory = ""; renderSidebar('main-sidebar', false); renderShop(); }
-                };
-                sidebar.appendChild(span);
+        function renderImgPreviews() {
+            const con = document.getElementById('admin-img-previews');
+            con.innerHTML = '';
+            tempImages.forEach((img, i) => {
+                con.innerHTML += `<div class="preview-img-slot"><img src="${img}" style="width:100%;height:100%;object-fit:cover;">
+                    <button class="del-img" onclick="tempImages.splice(${i},1);renderImgPreviews();">X</button></div>`;
             });
-            if(!isAdmin) renderSubNav();
+        }
+
+        async function saveProduct() {
+            const p = {
+                name: document.getElementById('p-title').value,
+                description: document.getElementById('p-desc').value,
+                price: parseFloat(document.getElementById('p-price').value || 0),
+                stock: parseInt(document.getElementById('p-stock').value || 0),
+                images: tempImages,
+                category: adminCurrentCategory,
+                subcategory: document.getElementById('p-sub-select').value,
+                status: 'live'
+            };
+
+            if(editingIdx !== null) await supabaseClient.from('products').update(p).eq('id', catalog[editingIdx].id);
+            else await supabaseClient.from('products').insert([p]);
+
+            await loadAllData();
+            renderAdminTable();
+            closeModals();
+            notify("Product Synchronized!");
+        }
+
+        // --- SHOP SYSTEM ---
+        function renderSidebar(target, isA) {
+            const con = document.getElementById(target);
+            con.innerHTML = '';
+            Object.keys(categories).forEach(c => {
+                const act = isA ? adminCurrentCategory === c : currentCategory === c;
+                const span = document.createElement('span');
+                span.className = `folder-link ${act ? 'active' : ''}`;
+                span.innerText = c;
+                span.onclick = () => {
+                    if(isA) { adminCurrentCategory = c; document.getElementById('active-folder-name').innerText = c; renderSidebar(target, true); renderAdminTable(); }
+                    else { currentCategory = c; currentSubcategory = ""; renderSidebar(target, false); renderShop(); renderSubNav(); }
+                };
+                con.appendChild(span);
+            });
+            if(!isA) renderSubNav();
         }
 
         function renderSubNav() {
@@ -368,16 +395,16 @@
             bar.innerHTML = '';
             const subs = categories[currentCategory] || [];
             if(subs.length > 0) {
-                const allBtn = document.createElement('button');
-                allBtn.className = `sub-pill ${currentSubcategory === "" ? "active" : ""}`;
-                allBtn.innerText = "All";
-                allBtn.onclick = () => { currentSubcategory = ""; renderSubNav(); renderShop(); };
-                bar.appendChild(allBtn);
-
+                const all = document.createElement('button');
+                all.style = `padding:5px 15px; border:2px solid #000; background:${currentSubcategory===''?'#000':'#fff'}; color:${currentSubcategory===''?'#fff':'#000'}; cursor:pointer; font-family:'Unbounded'; font-size:0.6rem;`;
+                all.innerText = "ALL";
+                all.onclick = () => { currentSubcategory = ""; renderSubNav(); renderShop(); };
+                bar.appendChild(all);
+                
                 subs.forEach(s => {
                     const btn = document.createElement('button');
-                    btn.className = `sub-pill ${currentSubcategory === s ? "active" : ""}`;
-                    btn.innerText = s;
+                    btn.style = `padding:5px 15px; border:2px solid #000; background:${currentSubcategory===s?'#000':'#fff'}; color:${currentSubcategory===s?'#fff':'#000'}; cursor:pointer; font-family:'Unbounded'; font-size:0.6rem;`;
+                    btn.innerText = s.toUpperCase();
                     btn.onclick = () => { currentSubcategory = s; renderSubNav(); renderShop(); };
                     bar.appendChild(btn);
                 });
@@ -387,151 +414,102 @@
         function renderShop() {
             const grid = document.getElementById('shop-grid');
             grid.innerHTML = '';
-            const filtered = catalog.filter(item => 
-                item.category === currentCategory && 
-                (!currentSubcategory || item.subcategory === currentSubcategory) && 
-                item.status === 'live'
-            );
-            
-            if (filtered.length === 0) {
-                grid.innerHTML = '<p class="classy" style="grid-column: 1/-1; text-align: center; padding: 50px;">Nothing here yet...</p>';
-                return;
-            }
-
-            filtered.forEach(item => {
-                const idx = catalog.indexOf(item);
-                grid.innerHTML += `
-                    <div class="art-card" onclick="openUserView(${idx})">
-                        <div class="img-container">
-                            <img src="${item.images?.[0] || ''}">
-                        </div>
-                        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: flex-end;">
-                            <div>
-                                <small style="font-weight: 900; opacity: 0.5; font-size: 0.6rem;">${item.subcategory || 'GENERAL'}</small>
-                                <h4 style="margin: 0; text-transform: uppercase; font-size: 1rem;">${item.name}</h4>
-                            </div>
-                            <p style="margin: 0; font-weight: 900; background: var(--accent); padding: 0 5px;">₱${item.price}</p>
-                        </div>
-                    </div>`;
-            });
-        }
-
-        function openUserView(idx) {
-            const item = catalog[idx];
-            tempQty = 0;
-            document.getElementById('view-title').innerText = item.name;
-            document.getElementById('view-desc').innerText = item.description || "";
-            document.getElementById('view-price').innerText = `₱${item.price}`;
-            document.getElementById('slider-wrapper').innerHTML = `<img src="${item.images?.[0] || ''}" style="width:100%; height:100%; object-fit:cover;">`;
-            
-            document.getElementById('qty-plus').onclick = () => { if(tempQty < item.stock) { tempQty++; updateQtyDisplay(item); } };
-            document.getElementById('qty-minus').onclick = () => { if(tempQty > 0) { tempQty--; updateQtyDisplay(item); } };
-            document.getElementById('add-to-cart-btn').onclick = () => {
-                if(tempQty > 0) {
-                    item.cartQty += tempQty;
-                    updateCartTotals();
-                    notify("Added to bag!", "🛒");
-                    closeModals();
-                } else {
-                    notify("Set quantity first", "☝️");
-                }
-            };
-            updateQtyDisplay(item);
-            document.getElementById('user-modal').classList.remove('hidden');
-        }
-
-        function updateQtyDisplay(item) {
-            document.getElementById('view-qty-display').innerText = tempQty;
-            document.getElementById('qty-minus').style.opacity = tempQty <= 0 ? "0.3" : "1";
-            document.getElementById('qty-plus').style.opacity = tempQty >= item.stock ? "0.3" : "1";
-        }
-
-        function updateCartTotals() {
-            let total = 0;
-            catalog.forEach(i => total += (i.cartQty || 0));
-            document.getElementById('cart-qty-total').innerText = total;
-        }
-
-        function showInvoice() {
-            const listCon = document.getElementById('invoice-items-list');
-            listCon.innerHTML = '';
-            let subtotal = 0;
-            catalog.forEach(item => {
-                if(item.cartQty > 0) {
-                    subtotal += (item.cartQty * item.price);
-                    listCon.innerHTML += `<div style="display:flex; justify-content:space-between; margin:10px 0; font-size: 0.9rem;">
-                        <span>${item.name} x ${item.cartQty}</span>
-                        <span>₱${(item.cartQty * item.price).toFixed(2)}</span>
-                    </div>`;
-                }
-            });
-            if(subtotal === 0) return notify("Your bag is empty", "🛒");
-            document.getElementById('inv-subtotal').innerText = `₱${subtotal.toFixed(2)}`;
-            document.getElementById('invoice-modal').classList.remove('hidden');
-        }
-
-        function downloadOrderSheet() {
-            const sheet = document.getElementById('printable-order-sheet');
-            html2canvas(sheet).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `RENCE-ORDER-${Date.now()}.png`;
-                link.href = canvas.toDataURL();
-                link.click();
-                hasDownloadedSheet = true;
-                notify("Sheet saved to gallery!");
-            });
-        }
-
-        function proceedToCheckout() {
-            if (!hasDownloadedSheet) return notify("Save order sheet first!", "⚠️");
-            window.open("https://docs.google.com/forms/d/e/1FAIpQLSdLMu09mL10Gh6BGKQaY3Oa0iJnw2esAbpeVw_d7nrrhnZu2Q/viewform", "_blank");
-        }
-
-        // --- ADMIN FUNCTIONS (AS PER CODE.TXT) ---
-        function renderAdminTable() {
-            const list = document.getElementById('admin-list');
-            list.innerHTML = '';
-            catalog.forEach((item, i) => {
-                if(item.category === adminCurrentCategory) {
-                    list.innerHTML += `<tr>
-                        <td>${item.name}</td>
-                        <td>₱${item.price}</td>
-                        <td>${item.stock}</td>
-                        <td style="color:${item.status === 'live' ? 'green' : 'red'}; font-weight:900;">${item.status.toUpperCase()}</td>
-                        <td><button onclick="openAdminModal(${i})" style="cursor:pointer;">EDIT</button></td>
-                    </tr>`;
-                }
-            });
-        }
-
-        function renderCategoryManager() {
-            const con = document.getElementById('mgr-list');
-            con.innerHTML = '';
-            Object.keys(categories).forEach(cat => {
-                con.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:5px;">
-                    <span>${cat}</span>
-                    <button onclick="mgrDelFolder('${cat}')" style="color:red; background:none; border:none; cursor:pointer;">✖</button>
+            catalog.filter(i => i.category === currentCategory && (!currentSubcategory || i.subcategory === currentSubcategory) && i.status === 'live')
+            .forEach(item => {
+                grid.innerHTML += `<div class="art-card" onclick="openUserView(${catalog.indexOf(item)})">
+                    <div class="img-container"><img src="${item.images[0] || ''}"></div>
+                    <div style="display:flex; justify-content:space-between; margin-top:10px; align-items:flex-end;">
+                        <h4 style="margin:0; font-size:0.9rem;">${item.name}</h4>
+                        <span style="font-weight:900; background:var(--accent); font-size:0.7rem; padding:2px 5px;">₱${item.price}</span>
+                    </div>
                 </div>`;
             });
         }
 
-        function notify(text, icon = "✨") {
-            const alertBox = document.getElementById('custom-alert');
-            document.getElementById('alert-text').innerText = text;
-            document.getElementById('alert-icon').innerText = icon;
-            alertBox.classList.add('show');
-            setTimeout(() => alertBox.classList.remove('show'), 3000);
+        function openUserView(idx) {
+            userViewIdx = idx;
+            const item = catalog[idx];
+            tempQty = 1;
+            document.getElementById('view-title').innerText = item.name;
+            document.getElementById('view-desc').innerText = item.description;
+            document.getElementById('view-price').innerText = `₱${item.price}`;
+            document.getElementById('view-qty').innerText = "1";
+            document.getElementById('user-view-carousel').innerHTML = `<img src="${item.images[0] || ''}">`;
+            
+            document.getElementById('add-to-cart-btn').onclick = () => {
+                item.cartQty += tempQty;
+                updateCartTotals();
+                notify("Added to Bag!");
+                closeModals();
+            };
+            document.getElementById('user-modal').classList.remove('hidden');
         }
 
-        function closeModals() { 
-            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+        function adjustQty(n) {
+            const item = catalog[userViewIdx];
+            if(tempQty + n > 0 && tempQty + n <= item.stock) {
+                tempQty += n;
+                document.getElementById('view-qty').innerText = tempQty;
+            }
         }
 
-        // Initialize empty catalog if no data found
-        window.onload = async () => {
-            // Data is loaded via button clicks to save bandwidth
-        };
+        function updateCartTotals() {
+            let total = 0;
+            catalog.forEach(i => total += i.cartQty);
+            document.getElementById('cart-qty-total').innerText = total;
+        }
+
+        // --- CHECKOUT SYSTEM ---
+        function showInvoice() {
+            const con = document.getElementById('invoice-list-items');
+            con.innerHTML = '';
+            let total = 0;
+            catalog.forEach(i => {
+                if(i.cartQty > 0) {
+                    total += (i.cartQty * i.price);
+                    con.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; font-family:'Unbounded'; font-size:0.8rem;">
+                        <span>${i.name} x ${i.cartQty}</span>
+                        <span>₱${(i.cartQty * i.price).toFixed(2)}</span>
+                    </div>`;
+                }
+            });
+            if(total === 0) return notify("Your bag is empty", "🛒");
+            document.getElementById('inv-total-amt').innerText = `₱${total.toFixed(2)}`;
+            document.getElementById('invoice-modal').classList.remove('hidden');
+        }
+
+        function downloadOrderSheet() {
+            html2canvas(document.getElementById('printable-sheet')).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `order-${Date.now()}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+                sheetSaved = true;
+                notify("Order Sheet Saved!");
+            });
+        }
+
+        function openShippingModal() {
+            if(!sheetSaved) return notify("Save the sheet first!", "⚠️");
+            document.getElementById('invoice-modal').classList.add('hidden');
+            document.getElementById('shipping-modal').classList.remove('hidden');
+        }
+
+        function finishCheckout(type) {
+            // URL logic from your code.txt
+            const url = "https://docs.google.com/forms/d/e/1FAIpQLSdLMu09mL10Gh6BGKQaY3Oa0iJnw2esAbpeVw_d7nrrhnZu2Q/viewform";
+            window.open(url, "_blank");
+        }
+
+        // --- UTILS ---
+        function notify(t, i="✨") {
+            const a = document.getElementById('custom-alert');
+            document.getElementById('alert-text').innerText = t;
+            document.getElementById('alert-icon').innerText = i;
+            a.classList.add('show');
+            setTimeout(() => a.classList.remove('show'), 2500);
+        }
+        function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden')); }
     </script>
 </body>
 </html>
-
