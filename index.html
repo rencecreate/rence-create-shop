@@ -350,15 +350,13 @@
 
     <script>
         // --- SUPABASE CONFIG ---
-        const SUPABASE_URL = 'https://wogftjsssxfhktgdfvod.supabase.co'; // REPLACE THIS
-        const SUPABASE_KEY = 'sb_publishable_9yJg8M-wrRXHMfuDnCtFkA_L3n1Ii36'; // REPLACE THIS
+        const SUPABASE_URL = ''; // REPLACE THIS
+        const SUPABASE_KEY = ''; // REPLACE THIS
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // --- STATE VARIABLES ---
-        let categories = {
-            "Stickers": ["Vinyl", "Holographic"],
-            "Pins": ["Enamel", "Acrylic"]
-        };
+        // Changed from Array to Object for subcategory support
+        let categories = { "Stickers": [], "Pins": [] }; 
         let catalog = [];
         let shippingFees = {
             "Luzon": 85, "Visayas": 100, "Mindanao": 105,
@@ -366,33 +364,33 @@
         };
 
         let currentCategory = "";
+        let currentSubcategory = ""; // New tracking variable
         let adminCurrentCategory = "";
         let tempImages = [];
         let editingIdx = null;
         let tempQty = 0;
         let currentSlide = 0;
 
-       // --- INITIALIZATION ---
+        // --- INITIALIZATION ---
         async function loadAllData() {
             const { data: setts } = await supabaseClient.from('settings').select('*').single();
             if (setts) {
-                // Ensure categories is an object. If it's an array or null, default to {}
+                // Fail-safe to ensure categories is always an object
                 categories = (setts.category_list && !Array.isArray(setts.category_list)) 
                              ? setts.category_list 
-                             : {};
+                             : { "Stickers": [], "Pins": [] };
                 shippingFees = setts.shipping_rates || shippingFees;
             }
-        
             const { data: prods } = await supabaseClient.from('products').select('*');
             if (prods) {
                 catalog = prods.map(p => ({ ...p, cartQty: 0 }));
             }
-        
-            // Set defaults for the UI
             const firstCat = Object.keys(categories)[0] || "";
             currentCategory = firstCat;
             adminCurrentCategory = firstCat;
         }
+
+        loadAllData();
 
         function notify(text, icon = "✨") {
             const alertBox = document.getElementById('custom-alert');
@@ -425,59 +423,21 @@
             }
         }
 
-        function updateSubcatDropdown(selectedSub = "") {
-            const cat = document.getElementById('p-category').value;
-            const subSelect = document.getElementById('p-subcategory');
-            subSelect.innerHTML = '<option value="">(No Subcategory)</option>';
-            
-            if (categories[cat]) {
-                categories[cat].forEach(sub => {
-                    const opt = document.createElement('option');
-                    opt.value = opt.innerText = sub;
-                    if(sub === selectedSub) opt.selected = true;
-                    subSelect.appendChild(opt);
-                });
-            }
-        }
-        
-        function addNewSubcategory() {
-            const cat = document.getElementById('p-category').value;
-            const newSub = prompt(`Add new subcategory to ${cat}:`);
-            
-            if (newSub) {
-                if (!categories[cat]) categories[cat] = [];
-                if (!categories[cat].includes(newSub)) {
-                    categories[cat].push(newSub);
-                    updateSubcatDropdown(newSub);
-                    notify(`Added "${newSub}" to ${cat}`);
-                }
-            }
-        }
-
        function renderSidebar(targetId, isAdmin) {
             const sidebar = document.getElementById(targetId);
-            if (!sidebar) return;
-        
-            // 1. SAVE SCROLL POSITION
             const oldScrollElement = sidebar.querySelector('.sidebar-scroll');
             const savedScrollLeft = oldScrollElement ? oldScrollElement.scrollLeft : 0;
-            const savedScrollTop = oldScrollElement ? oldScrollElement.scrollTop : 0;
             
-            // 2. CLEAR AND REBUILD HEADERS
             sidebar.innerHTML = '<h3 style="font-size:0.75rem; text-transform:uppercase; color:var(--text-light); margin-bottom:10px;">Menu</h3>';
-            
-            // 3. CREATE THE SCROLLABLE CONTAINER
             const scrollDiv = document.createElement('div');
             scrollDiv.className = 'sidebar-scroll';
             
-            // 4. GENERATE THE BUTTONS USING OBJECT KEYS
-            // We use Object.keys because 'categories' is now an object { "CatName": ["Sub1", "Sub2"] }
+            // Updated to use Object.keys
             Object.keys(categories).forEach((catName) => {
                 const row = document.createElement('div');
                 row.style = "display:flex; align-items:center; gap:5px; margin-bottom:8px;";
                 
                 const btn = document.createElement('button');
-                // Check active state based on current selection
                 const isActive = isAdmin ? (adminCurrentCategory === catName) : (currentCategory === catName);
                 
                 btn.className = `sidebar-btn ${isActive ? 'active' : ''}`;
@@ -490,7 +450,7 @@
                         renderAdminTable(); 
                     } else { 
                         currentCategory = catName; 
-                        currentSubcategory = ""; // <-- ADD THIS LINE
+                        currentSubcategory = ""; // Reset sub-filter when changing folder
                         renderSidebar('main-sidebar', false); 
                         renderShop(); 
                     }
@@ -498,78 +458,45 @@
                 
                 row.appendChild(btn);
                 
-                // If Admin is viewing, add the delete button
                 if (isAdmin) {
                     const del = document.createElement('button');
                     del.innerHTML = "×";
                     del.style = "background:#fee2e2; color:var(--danger); width:35px; border-radius:10px; font-weight:bold; height:40px; border:none; cursor:pointer;";
-                    // We pass the catName (string) instead of index
                     del.onclick = () => deleteCategory(catName);
                     row.appendChild(del);
                 }
-                
                 scrollDiv.appendChild(row);
             });
-            
             sidebar.appendChild(scrollDiv);
-            
-            // 5. RESTORE SCROLL POSITION
             scrollDiv.scrollLeft = savedScrollLeft;
-            scrollDiv.scrollTop = savedScrollTop;
         }
-        
-        // Updated Delete Function to match the new Object structure
-        function deleteCategory(catName) {
-            customConfirm(`Delete the folder "${catName}" and all its subcategories?`, () => {
-                // Remove the key from the object
-                delete categories[catName];
-                
-                // Reset the active category to the first available one if current was deleted
-                const remainingKeys = Object.keys(categories);
-                if (adminCurrentCategory === catName) {
-                    adminCurrentCategory = remainingKeys.length > 0 ? remainingKeys[0] : "";
-                }
-                if (currentCategory === catName) {
-                    currentCategory = remainingKeys.length > 0 ? remainingKeys[0] : "";
-                }
-                
-                renderSidebar('admin-sidebar', true);
-                renderAdminTable();
-                notify(`Deleted folder: ${catName}`, "🗑️");
-            });
-        }
-
-        let currentSubcategory = ""; // Add this to your top-level variables
 
         function renderShop() {
-            const grid = document.getElementById('product-grid');
+            const grid = document.getElementById('shop-grid');
             if (!grid) return;
             grid.innerHTML = '';
-        
-            // 1. Handle the Subcategory Bar logic
+
+            // Handle Subcategory Pill Bar
             let subBar = document.getElementById('subcategory-bar');
             if (!subBar) {
                 subBar = document.createElement('div');
                 subBar.id = 'subcategory-bar';
-                // Styling to make it look like a row of pills
-                subBar.style = "display:flex; gap:10px; overflow-x:auto; padding:10px 20px; margin-bottom:15px; white-space:nowrap; -webkit-overflow-scrolling:touch;";
+                subBar.style = "display:flex; gap:10px; overflow-x:auto; padding:10px 0; margin-bottom:15px; white-space:nowrap; -webkit-overflow-scrolling:touch; scrollbar-width:none;";
                 grid.parentNode.insertBefore(subBar, grid);
             }
-        
+
             const subs = categories[currentCategory] || [];
             if (subs.length === 0) {
                 subBar.style.display = 'none';
-                currentSubcategory = ""; // Reset if category has no subs
+                currentSubcategory = "";
             } else {
                 subBar.style.display = 'flex';
                 subBar.innerHTML = '';
                 
-                // "All" Pill
                 const allBtn = createPill("All", currentSubcategory === "");
                 allBtn.onclick = () => { currentSubcategory = ""; renderShop(); };
                 subBar.appendChild(allBtn);
-        
-                // Subcategory Pills
+
                 subs.forEach(s => {
                     const btn = createPill(s, currentSubcategory === s);
                     btn.onclick = () => { 
@@ -579,39 +506,27 @@
                     subBar.appendChild(btn);
                 });
             }
-        
-            // 2. Filter Products
+
+            // Filter Products by Category AND Subcategory
             const filtered = catalog.filter(item => {
                 const matchesCat = item.category === currentCategory;
                 const matchesSub = !currentSubcategory || item.subcategory === currentSubcategory;
                 return matchesCat && matchesSub && item.status === 'live';
             });
-        
-            // 3. Render Grid
+
             if (filtered.length === 0) {
-                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:50px; color:var(--text-light);">No products found in this section.</div>`;
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding-top:50px;"><h2 style="color:var(--text-light);">Work In Progress</h2></div>';
                 return;
             }
-        
+
             filtered.forEach(item => {
-                const idx = catalog.findIndex(p => p.id === item.id);
-                const card = document.createElement('div');
-                card.className = 'product-card';
-                card.onclick = () => openUserModal(idx);
-                card.innerHTML = `
-                    <div class="product-img-container">
-                        <img src="${item.images[0] || ''}" loading="lazy">
-                    </div>
-                    <div class="product-info">
-                        <div class="product-name">${item.name}</div>
-                        <div class="product-price">₱${item.price.toLocaleString()}</div>
-                    </div>
-                `;
-                grid.appendChild(card);
+                const img = item.images?.[0] ? `<img src="${item.images[0]}" style="width:100%; height:100%; object-fit:cover;">` : "No Image";
+                grid.innerHTML += `<div class="product-card" onclick="openUserView(${catalog.indexOf(item)})">
+                    <div style="width:100%; aspect-ratio:1/1; background:#f1f5f9; border-radius:15px; margin-bottom:12px; display:flex; align-items:center; justify-content:center; overflow:hidden;">${img}</div>
+                    <h4 style="margin:5px 0;">${item.name}</h4><p style="color:var(--primary); font-weight:800; margin:0;">₱${item.price.toFixed(2)}</p></div>`;
             });
         }
-        
-        // Helper for the Pill buttons
+
         function createPill(text, active) {
             const b = document.createElement('button');
             b.innerText = text;
@@ -631,6 +546,7 @@
                         <tr id="row-${i}" class="admin-mobile-row">
                             <td>
                                 <div style="font-weight:700; font-size: 1.1rem;">${item.name}</div>
+                                <div style="font-size:0.7rem; color:var(--text-light);">${item.subcategory || 'No Subcategory'}</div>
                                 <div id="status-${i}" class="hidden">
                                     <div class="row-progress-container"><div id="bar-${i}" class="row-progress-bar"></div></div>
                                 </div>
@@ -666,73 +582,23 @@
             });
         }
 
-        function renderSubcategoryBar() {
-            // Look for or create a container for subcats
-            let subBar = document.getElementById('subcategory-bar');
-            if (!subBar) {
-                subBar = document.createElement('div');
-                subBar.id = 'subcategory-bar';
-                subBar.style = "display:flex; gap:10px; overflow-x:auto; padding:10px 5%; margin-bottom:10px; white-space:nowrap; scrollbar-width:none;";
-                document.querySelector('main').prepend(subBar);
-            }
-        
-            subBar.innerHTML = '';
-            const subs = categories[currentCategory] || [];
-        
-            if (subs.length === 0) {
-                subBar.style.display = 'none';
-                return;
-            }
-        
-            subBar.style.display = 'flex';
-        
-            // Add "All" button
-            const allBtn = createSubBtn("All", currentSubcategory === "");
-            allBtn.onclick = () => { currentSubcategory = ""; renderShop(); };
-            subBar.appendChild(allBtn);
-        
-            // Add specific subcategory buttons
-            subs.forEach(sub => {
-                const btn = createSubBtn(sub, currentSubcategory === sub);
-                btn.onclick = () => { 
-                    currentSubcategory = (currentSubcategory === sub) ? "" : sub; 
-                    renderShop(); 
-                };
-                subBar.appendChild(btn);
-            });
-        }
-        
-        function createSubBtn(label, isActive) {
-            const btn = document.createElement('button');
-            btn.innerText = label;
-            btn.style = `
-                padding: 6px 15px;
-                border-radius: 20px;
-                border: 1px solid ${isActive ? 'var(--primary)' : '#ddd'};
-                background: ${isActive ? 'var(--primary)' : 'white'};
-                color: ${isActive ? 'white' : 'var(--text)'};
-                font-size: 0.8rem;
-                cursor: pointer;
-                transition: 0.2s;
-            `;
-            return btn;
-        }
-
         function updateFee(key, val) { shippingFees[key] = parseFloat(val) || 0; }
 
         function openAdminModal(idx = null) {
             editingIdx = idx;
             tempImages = idx !== null ? [...(catalog[idx].images || [])] : [];
-            
-            // Set text fields
             document.getElementById('p-title').value = idx !== null ? catalog[idx].name : "";
             document.getElementById('p-desc').value = idx !== null ? catalog[idx].description : "";
             document.getElementById('p-price').value = idx !== null ? catalog[idx].price : "";
             document.getElementById('p-stock').value = idx !== null ? catalog[idx].stock : "";
-        
-            // Generate Category Dropdown
+
+            // New UI for Category and Subcategory selection
+            const titleInput = document.getElementById('p-title');
+            document.querySelectorAll('.dynamic-cat-field').forEach(el => el.remove());
+
             const catSelect = document.createElement('select');
             catSelect.id = 'p-category';
+            catSelect.className = 'dynamic-cat-field';
             catSelect.onchange = () => updateSubcatDropdown();
             Object.keys(categories).forEach(cat => {
                 const opt = document.createElement('option');
@@ -740,35 +606,18 @@
                 if (idx !== null && catalog[idx].category === cat) opt.selected = true;
                 catSelect.appendChild(opt);
             });
-        
-            // Create Subcategory Container
+
             const subContainer = document.createElement('div');
+            subContainer.className = 'dynamic-cat-field';
             subContainer.style = "display: flex; gap: 8px; margin-bottom: 10px;";
             subContainer.innerHTML = `
                 <select id="p-subcategory" style="flex: 1; margin: 0;"></select>
-                <button onclick="addNewSubcategory()" style="background: var(--text-light); white-space: nowrap;">+ Sub</button>
+                <button onclick="addNewSubcategory()" style="background: var(--text-light); white-space: nowrap; padding: 0 15px;">+ Sub</button>
             `;
-        
-            // Inject into Modal (Replace old fields or insert before description)
-            const modalBody = document.querySelector('#admin-modal .modal-content');
-            const oldInputs = document.querySelectorAll('.dynamic-cat-field');
-            oldInputs.forEach(el => el.remove()); // Clean up previous opens
-        
-            const titleInput = document.getElementById('p-title');
-            const catLabel = document.createElement('label');
-            catLabel.className = 'dynamic-cat-field';
-            catLabel.innerText = "Category & Subcategory";
-            catLabel.style = "font-size: 0.7rem; color: var(--text-light); display: block; margin-top: 10px;";
-            
-            catSelect.classList.add('dynamic-cat-field');
-            subContainer.classList.add('dynamic-cat-field');
-        
-            titleInput.after(catLabel, catSelect, subContainer);
-        
-            // Initial Subcategory Population
+
+            titleInput.after(catSelect, subContainer);
             updateSubcatDropdown(idx !== null ? catalog[idx].subcategory : "");
-        
-            // Footer buttons logic
+
             const foot = document.getElementById('modal-footer');
             if (idx === null) {
                 foot.innerHTML = `<button onclick="saveProduct()" style="flex:1;">Upload Product</button>
@@ -782,9 +631,35 @@
                                     <button onclick="deleteItem(${idx})" style="background:var(--danger);">Delete Listing</button>
                                   </div>`;
             }
-            
             renderAdminImgPreviews();
             document.getElementById('admin-modal').classList.remove('hidden');
+        }
+
+        function updateSubcatDropdown(selectedSub = "") {
+            const cat = document.getElementById('p-category').value;
+            const subSelect = document.getElementById('p-subcategory');
+            subSelect.innerHTML = '<option value="">(No Subcategory)</option>';
+            if (categories[cat]) {
+                categories[cat].forEach(sub => {
+                    const opt = document.createElement('option');
+                    opt.value = opt.innerText = sub;
+                    if(sub === selectedSub) opt.selected = true;
+                    subSelect.appendChild(opt);
+                });
+            }
+        }
+
+        function addNewSubcategory() {
+            const cat = document.getElementById('p-category').value;
+            const newSub = prompt(`Add new subcategory to ${cat}:`);
+            if (newSub) {
+                if (!categories[cat]) categories[cat] = [];
+                if (!categories[cat].includes(newSub)) {
+                    categories[cat].push(newSub);
+                    updateSubcatDropdown(newSub);
+                    notify(`Added "${newSub}"`);
+                }
+            }
         }
 
         function renderAdminImgPreviews() {
@@ -845,8 +720,8 @@
                 price: parseFloat(document.getElementById('p-price').value) || 0,
                 stock: parseInt(document.getElementById('p-stock').value) || 0,
                 images: tempImages,
-                category: document.getElementById('p-category').value, // Get from dropdown
-                subcategory: document.getElementById('p-subcategory').value, // New field
+                category: document.getElementById('p-category').value,
+                subcategory: document.getElementById('p-subcategory').value,
                 status: editingIdx !== null ? catalog[editingIdx].status : 'offline'
             };
             let idx = editingIdx;
@@ -867,6 +742,7 @@
             const bar = document.getElementById(`bar-${idx}`);
             const row = document.getElementById(`row-${idx}`);
             const editBtn = document.getElementById(`edit-btn-${idx}`);
+            if (!statusDiv) return;
             statusDiv.classList.remove('hidden');
             row.classList.add('syncing');
             if(editBtn) editBtn.disabled = true;
@@ -926,8 +802,6 @@
                     hasItems = true;
                     const itemTotal = item.cartQty * item.price;
                     subtotal += itemTotal;
-        
-                    // Added Edit Controls (Minus, Plus, Remove)
                     listCon.innerHTML += `
                         <div class="invoice-item" style="align-items: center; gap: 10px;">
                             <div style="flex: 1;">
@@ -951,7 +825,6 @@
                 return; 
             }
         
-            // Refresh the region options (same as before)
             const localGrp = document.getElementById('local-opts');
             localGrp.innerHTML = '';
             const intlGrp = document.getElementById('intl-opts'); 
@@ -967,17 +840,15 @@
             document.getElementById('invoice-modal').classList.remove('hidden');
         }
         
-        // New helper function to handle the logic of adding/removing
         function updateCartItem(index, amount) {
             const item = catalog[index];
             const newQty = item.cartQty + amount;
-        
             if (newQty >= 0 && newQty <= item.stock) {
                 item.cartQty = newQty;
-                updateCartTotals(); // Updates the bottom bar of the main shop
-                showInvoice();      // Refreshes the cart modal to show new numbers
+                updateCartTotals();
+                showInvoice();
             } else if (newQty > item.stock) {
-                notify("Not enough stock available!", "⚠️");
+                notify("Not enough stock!", "⚠️");
             }
         }
 
@@ -992,16 +863,12 @@
         function downloadOrderSheet() {
             const sheet = document.getElementById('printable-order-sheet');
             const actions = document.getElementById('invoice-actions');
-            
             actions.style.display = 'none';
-            
-            // Added scale: 2 for high-quality images on mobile
             html2canvas(sheet, { scale: 2, useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = `order-${Date.now()}.png`;
                 link.href = canvas.toDataURL("image/png");
                 link.click();
-                
                 actions.style.display = 'flex';
                 notify("Saved to Gallery!", "📸");
             });
@@ -1018,41 +885,28 @@
                 document.getElementById('upload-progress-container').classList.add('hidden');
             }
         }
-        
+
         function addCategory() {
             const val = document.getElementById('new-cat-input').value.trim();
-            // Check if the name exists and isn't already a key in our object
-            if (val && !categories[val]) { 
-                categories[val] = []; // Create a new category with an empty subcategory list
+            if(val && !categories[val]) { 
+                categories[val] = []; 
                 document.getElementById('new-cat-input').value = ""; 
                 renderSidebar('admin-sidebar', true); 
-                notify("Folder Created: " + val); 
-            } else if (categories[val]) {
-                notify("Folder already exists!", "⚠️");
+                notify("Folder Created"); 
             }
         }
-        
-        function deleteCategory(catName) {
-            customConfirm(`Delete the folder "${catName}"? This will not delete the products, but they will become unassigned.`, () => {
-                // Correct way to remove a key from an Object
+
+        function deleteCategory(catName) { 
+            customConfirm(`Delete the folder "${catName}"?`, () => { 
                 delete categories[catName];
-                
-                // If we deleted the folder we were currently viewing, switch to the first available one
-                const remainingFolders = Object.keys(categories);
-                if (adminCurrentCategory === catName) {
-                    adminCurrentCategory = remainingFolders.length > 0 ? remainingFolders[0] : "";
-                }
-                if (currentCategory === catName) {
-                    currentCategory = remainingFolders.length > 0 ? remainingFolders[0] : "";
-                }
-        
-                renderSidebar('admin-sidebar', true);
+                const remaining = Object.keys(categories);
+                if (adminCurrentCategory === catName) adminCurrentCategory = remaining[0] || "";
+                if (currentCategory === catName) currentCategory = remaining[0] || "";
+                renderSidebar('admin-sidebar', true); 
                 renderAdminTable();
-                // Crucial: Sync changes to Supabase!
-                saveAdminChanges(); 
-                notify("Folder deleted");
-            });
-        }  
+                saveAdminChanges(); // Auto-save on delete
+            }); 
+        }
         
         function openUserView(idx) {
             const item = catalog[idx];
@@ -1072,17 +926,20 @@
             };
             document.getElementById('user-modal').classList.remove('hidden');
         }
+
         function updateQtyDisplay(item) {
             document.getElementById('view-qty-display').innerText = tempQty;
             document.getElementById('qty-minus').disabled = tempQty <= 0;
             document.getElementById('qty-plus').disabled = tempQty >= item.stock;
         }
+
         function moveSlider(dir) {
             const wrap = document.getElementById('slider-wrapper');
             const total = wrap.children.length; if (total <= 1) return;
             currentSlide = (currentSlide + dir + total) % total;
             wrap.style.transform = `translateX(-${currentSlide * 100}%)`;
         }
+
         async function deleteItem(idx) { 
             const item = catalog[idx];
             customConfirm("Delete this listing?", async () => { 
@@ -1094,8 +951,7 @@
             });
         }
     </script>
-</body>
-</html>
+
 
 
 
