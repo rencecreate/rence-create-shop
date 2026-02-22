@@ -208,385 +208,465 @@
     </div>
 
     <script>
-const SUPABASE_URL = 'https://wogftjsssxfhktgdfvod.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_9yJg8M-wrRXHMfuDnCtFkA_L3n1Ii36';
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let categories = { "Stickers": [], "Pins": [] };
-let catalog = [];
-let currentCategory = "";
-let currentSubcategory = "";
-let adminCurrentCategory = "";
-let tempImages = [];
-let editingIdx = null;
-let userViewIdx = null;
-let tempQty = 1;
-let sheetSaved = false;
-
-async function loadAllData() {
-    const { data: setts } = await supabaseClient.from('settings').select('*').single();
-    if (setts && setts.category_list) categories = setts.category_list;
-
-    const { data: prods } = await supabaseClient.from('products').select('*');
-    if (prods) {
-        catalog = prods.map(p => ({
-            ...p,
-            status: p.status || 'live',
-            images: p.images || [],
-            cartQty: 0
-        }));
-    }
-
-    const firstCat = Object.keys(categories)[0] || "";
-    currentCategory = adminCurrentCategory = firstCat;
-
-    const folderLabel = document.getElementById('active-folder-name');
-    if (folderLabel && firstCat) folderLabel.innerText = firstCat;
-}
-
-async function enterStore() {
-    const name = document.getElementById('username-input').value;
-    if (!name) return notify("Please enter your name", "☝️");
-
-    await loadAllData();
-
-    document.getElementById('login-page').classList.add('hidden');
-    document.getElementById('main-page').classList.remove('hidden');
-
-    renderSidebar('main-sidebar', false);
-    renderShop();
-}
-
-function showAdminLogin() {
-    document.getElementById('admin-login-modal').classList.remove('hidden');
-}
-
-async function attemptAdminLogin() {
-    const u = document.getElementById('admin-user').value;
-    const p = document.getElementById('admin-pass').value;
-
-    if (u === "admin" && btoa(p) === "Y3JlYXRlMjAyNg==") {
-        await loadAllData();
-        closeModals();
-
-        document.getElementById('login-page').classList.add('hidden');
-        document.getElementById('admin-page').classList.remove('hidden');
-
-        renderSidebar('admin-sidebar', true);
-        renderAdminTable();
-        renderCategoryManager();
-    } else {
-        notify("Invalid Credentials", "❌");
-    }
-}
-
-function renderCategoryManager() {
-    const con = document.getElementById('mgr-list');
-    if (!con) return;
-
-    con.innerHTML = '';
-
-    Object.keys(categories).forEach(cat => {
-        const isCurrent = (adminCurrentCategory === cat);
-
-        const folderBox = document.createElement('div');
-        folderBox.style = `border-bottom:2px solid #000;padding:15px;background:${isCurrent ? '#fff' : '#eee'}`;
-
-        folderBox.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <b style="font-size:0.9rem;cursor:pointer;" onclick="selectFolder('${cat}')">
-                ${isCurrent ? '📂' : '📁'} ${cat.toUpperCase()}
-            </b>
-            <div>
-                <button onclick="mgrRenameFolder('${cat}')" style="font-size:0.5rem;font-weight:900;">RENAME</button>
-                <button onclick="mgrDelFolder('${cat}')" style="font-size:0.5rem;font-weight:900;color:red;">DELETE</button>
-            </div>
-        </div>
-        <div style="padding-left:20px;border-left:2px dashed #ccc;">
-            <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">
-                ${categories[cat].map((sub, idx) => `
-                    <span style="background:#000;color:#fff;font-size:0.5rem;padding:3px 8px;">
-                        ${sub}
-                        <b onclick="mgrDelSub('${cat}', ${idx})" style="color:#00ff66;cursor:pointer;">×</b>
-                    </span>`).join('')}
-            </div>
-            <div style="display:flex;gap:5px;">
-                <input type="text" id="input-sub-${cat}" placeholder="New Sub..." style="font-size:0.6rem;padding:5px;">
-                <button onclick="mgrAddSubInline('${cat}')" style="font-size:0.6rem;">+ SUB</button>
-            </div>
-        </div>`;
-        con.appendChild(folderBox);
-    });
-}
-
-function selectFolder(cat) {
-    adminCurrentCategory = cat;
-    const label = document.getElementById('active-folder-name');
-    if (label) label.innerText = cat;
-
-    renderCategoryManager();
-    renderSidebar('admin-sidebar', true);
-    renderAdminTable();
-}
-
-function mgrAddSubInline(catName) {
-    const input = document.getElementById(`input-sub-${catName}`);
-    if (!input) return;
-
-    const val = input.value.trim();
-    if (!val) return;
-
-    if (!categories[catName].includes(val)) {
-        categories[catName].push(val);
-        input.value = '';
-        renderCategoryManager();
-        notify(`Subcategory added to ${catName}`);
-    } else {
-        notify("Subcategory already exists!", "⚠️");
-    }
-}
-
-function mgrDelSub(catName, subIdx) {
-    if (confirm(`Remove subcategory "${categories[catName][subIdx]}"?`)) {
-        categories[catName].splice(subIdx, 1);
-        renderCategoryManager();
-        notify("Subcategory Removed");
-    }
-}
-
-function mgrDelFolder(catName) {
-    if (confirm(`EXTREME WARNING: Deleting "${catName}" will hide all products inside it. Continue?`)) {
-        delete categories[catName];
-
-        const remaining = Object.keys(categories);
-        adminCurrentCategory = remaining[0] || "";
-
-        renderCategoryManager();
-        renderSidebar('admin-sidebar', true);
-        renderAdminTable();
-        notify("Folder Deleted", "🗑️");
-    }
-}
-
-function mgrRenameFolder(oldName) {
-    const newName = prompt("Enter new name for '" + oldName + "':", oldName);
-    if (!newName || newName === oldName) return;
-
-    categories[newName] = categories[oldName];
-    delete categories[oldName];
-
-    catalog.forEach(p => {
-        if (p.category === oldName) p.category = newName;
-    });
-
-    if (adminCurrentCategory === oldName) adminCurrentCategory = newName;
-
-    renderCategoryManager();
-    renderSidebar('admin-sidebar', true);
-    renderAdminTable();
-
-    notify("Category renamed and products updated!");
-}
-
-async function saveAdminChanges() {
-    await supabaseClient.from('settings').update({ category_list: categories }).eq('id', 1);
-    notify("Global Settings Saved!");
-}
-
-function renderAdminTable() {
-    const list = document.getElementById('admin-list');
-    if (!list) return;
-
-    list.innerHTML = '';
-
-    catalog
-        .filter(i => i.category === adminCurrentCategory)
-        .forEach(item => {
-            const idx = catalog.indexOf(item);
-            const isLive = item.status === 'live';
-
-            list.innerHTML += `
-            <tr>
-                <td>${item.name}</td>
-                <td>${item.subcategory || '-'}</td>
-                <td>₱${item.price}</td>
-                <td>${item.stock}</td>
-                <td>
-                    <button onclick="toggleStatus(${idx})"
-                        style="font-size:0.5rem;background:${isLive ? '#00ff66' : '#ff4444'};">
-                        ${isLive ? 'LIVE' : 'OFFLINE'}
-                    </button>
-                    <button onclick="openAdminModal(${idx})" style="font-size:0.5rem;margin-left:5px;">
-                        EDIT
-                    </button>
-                </td>
-            </tr>`;
-        });
-}
-
-async function toggleStatus(idx) {
-    const item = catalog[idx];
-    const newStatus = item.status === 'live' ? 'offline' : 'live';
-
-    item.status = newStatus;
-
-    const { error } = await supabaseClient
-        .from('products')
-        .update({ status: newStatus })
-        .eq('id', item.id);
-
-    if (!error) {
-        notify(`Product is now ${newStatus.toUpperCase()}`, newStatus === 'live' ? "👁️" : "👻");
-        renderAdminTable();
-    } else {
-        notify("Update Failed", "❌");
-        console.error(error);
-    }
-}
-
-function renderSidebar(target, isAdmin) {
-    const con = document.getElementById(target);
-    if (!con) return;
-
-    con.innerHTML = '';
-
-    Object.keys(categories).forEach(c => {
-        const active = isAdmin ? adminCurrentCategory === c : currentCategory === c;
-
-        const span = document.createElement('span');
-        span.className = `folder-link ${active ? 'active' : ''}`;
-        span.innerText = c;
-
-        span.onclick = () => {
-            if (isAdmin) {
-                adminCurrentCategory = c;
-                const label = document.getElementById('active-folder-name');
-                if (label) label.innerText = c;
-
-                renderSidebar(target, true);
+        const SUPABASE_URL = 'https://wogftjsssxfhktgdfvod.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_9yJg8M-wrRXHMfuDnCtFkA_L3n1Ii36';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        let categories = { "Stickers": [], "Pins": [] };
+        let catalog = [];
+        let currentCategory = "";
+        let currentSubcategory = "";
+        let adminCurrentCategory = "";
+        let tempImages = [];
+        let editingIdx = null;
+        let userViewIdx = null;
+        let tempQty = 1;
+        let sheetSaved = false;
+        
+        async function loadAllData() {
+            const { data: setts } = await supabaseClient.from('settings').select('*').single();
+            if (setts && setts.category_list) categories = setts.category_list;
+        
+            const { data: prods } = await supabaseClient.from('products').select('*');
+            if (prods) {
+                catalog = prods.map(p => ({
+                    ...p,
+                    status: p.status || 'live',
+                    images: p.images || [],
+                    cartQty: 0
+                }));
+            }
+        
+            const firstCat = Object.keys(categories)[0] || "";
+            currentCategory = adminCurrentCategory = firstCat;
+        
+            const folderLabel = document.getElementById('active-folder-name');
+            if (folderLabel && firstCat) folderLabel.innerText = firstCat;
+        }
+        
+        async function enterStore() {
+            const name = document.getElementById('username-input').value;
+            if (!name) return notify("Please enter your name", "☝️");
+        
+            await loadAllData();
+        
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('main-page').classList.remove('hidden');
+        
+            renderSidebar('main-sidebar', false);
+            renderShop();
+        }
+        
+        function showAdminLogin() {
+            document.getElementById('admin-login-modal').classList.remove('hidden');
+        }
+        
+        async function attemptAdminLogin() {
+            const u = document.getElementById('admin-user').value;
+            const p = document.getElementById('admin-pass').value;
+        
+            if (u === "admin" && btoa(p) === "Y3JlYXRlMjAyNg==") {
+                await loadAllData();
+                closeModals();
+        
+                document.getElementById('login-page').classList.add('hidden');
+                document.getElementById('admin-page').classList.remove('hidden');
+        
+                renderSidebar('admin-sidebar', true);
+                renderAdminTable();
+                renderCategoryManager();
+            } else {
+                notify("Invalid Credentials", "❌");
+            }
+        }
+        
+        function renderCategoryManager() {
+            const con = document.getElementById('mgr-list');
+            if (!con) return;
+        
+            con.innerHTML = '';
+        
+            Object.keys(categories).forEach(cat => {
+                const isCurrent = (adminCurrentCategory === cat);
+        
+                const folderBox = document.createElement('div');
+                folderBox.style = `border-bottom:2px solid #000;padding:15px;background:${isCurrent ? '#fff' : '#eee'}`;
+        
+                folderBox.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <b style="font-size:0.9rem;cursor:pointer;" onclick="selectFolder('${cat}')">
+                        ${isCurrent ? '📂' : '📁'} ${cat.toUpperCase()}
+                    </b>
+                    <div>
+                        <button onclick="mgrRenameFolder('${cat}')" style="font-size:0.5rem;font-weight:900;">RENAME</button>
+                        <button onclick="mgrDelFolder('${cat}')" style="font-size:0.5rem;font-weight:900;color:red;">DELETE</button>
+                    </div>
+                </div>
+                <div style="padding-left:20px;border-left:2px dashed #ccc;">
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">
+                        ${categories[cat].map((sub, idx) => `
+                            <span style="background:#000;color:#fff;font-size:0.5rem;padding:3px 8px;">
+                                ${sub}
+                                <b onclick="mgrDelSub('${cat}', ${idx})" style="color:#00ff66;cursor:pointer;">×</b>
+                            </span>`).join('')}
+                    </div>
+                    <div style="display:flex;gap:5px;">
+                        <input type="text" id="input-sub-${cat}" placeholder="New Sub..." style="font-size:0.6rem;padding:5px;">
+                        <button onclick="mgrAddSubInline('${cat}')" style="font-size:0.6rem;">+ SUB</button>
+                    </div>
+                </div>`;
+                con.appendChild(folderBox);
+            });
+        }
+        
+        function selectFolder(cat) {
+            adminCurrentCategory = cat;
+            const label = document.getElementById('active-folder-name');
+            if (label) label.innerText = cat;
+        
+            renderCategoryManager();
+            renderSidebar('admin-sidebar', true);
+            renderAdminTable();
+        }
+        
+        function mgrAddSubInline(catName) {
+            const input = document.getElementById(`input-sub-${catName}`);
+            if (!input) return;
+        
+            const val = input.value.trim();
+            if (!val) return;
+        
+            if (!categories[catName].includes(val)) {
+                categories[catName].push(val);
+                input.value = '';
+                renderCategoryManager();
+                notify(`Subcategory added to ${catName}`);
+            } else {
+                notify("Subcategory already exists!", "⚠️");
+            }
+        }
+        
+        function mgrDelSub(catName, subIdx) {
+            if (confirm(`Remove subcategory "${categories[catName][subIdx]}"?`)) {
+                categories[catName].splice(subIdx, 1);
+                renderCategoryManager();
+                notify("Subcategory Removed");
+            }
+        }
+        
+        function mgrDelFolder(catName) {
+            if (confirm(`EXTREME WARNING: Deleting "${catName}" will hide all products inside it. Continue?`)) {
+                delete categories[catName];
+        
+                const remaining = Object.keys(categories);
+                adminCurrentCategory = remaining[0] || "";
+        
+                renderCategoryManager();
+                renderSidebar('admin-sidebar', true);
+                renderAdminTable();
+                notify("Folder Deleted", "🗑️");
+            }
+        }
+        
+        function mgrRenameFolder(oldName) {
+            const newName = prompt("Enter new name for '" + oldName + "':", oldName);
+            if (!newName || newName === oldName) return;
+        
+            categories[newName] = categories[oldName];
+            delete categories[oldName];
+        
+            catalog.forEach(p => {
+                if (p.category === oldName) p.category = newName;
+            });
+        
+            if (adminCurrentCategory === oldName) adminCurrentCategory = newName;
+        
+            renderCategoryManager();
+            renderSidebar('admin-sidebar', true);
+            renderAdminTable();
+        
+            notify("Category renamed and products updated!");
+        }
+        
+        async function saveAdminChanges() {
+            await supabaseClient.from('settings').update({ category_list: categories }).eq('id', 1);
+            notify("Global Settings Saved!");
+        }
+        
+        function renderAdminTable() {
+            const list = document.getElementById('admin-list');
+            if (!list) return;
+        
+            list.innerHTML = '';
+        
+            catalog
+                .filter(i => i.category === adminCurrentCategory)
+                .forEach(item => {
+                    const idx = catalog.indexOf(item);
+                    const isLive = item.status === 'live';
+        
+                    list.innerHTML += `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td>${item.subcategory || '-'}</td>
+                        <td>₱${item.price}</td>
+                        <td>${item.stock}</td>
+                        <td>
+                            <button onclick="toggleStatus(${idx})"
+                                style="font-size:0.5rem;background:${isLive ? '#00ff66' : '#ff4444'};">
+                                ${isLive ? 'LIVE' : 'OFFLINE'}
+                            </button>
+                            <button onclick="openAdminModal(${idx})" style="font-size:0.5rem;margin-left:5px;">
+                                EDIT
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+        }
+        
+        async function toggleStatus(idx) {
+            const item = catalog[idx];
+            const newStatus = item.status === 'live' ? 'offline' : 'live';
+        
+            item.status = newStatus;
+        
+            const { error } = await supabaseClient
+                .from('products')
+                .update({ status: newStatus })
+                .eq('id', item.id);
+        
+            if (!error) {
+                notify(`Product is now ${newStatus.toUpperCase()}`, newStatus === 'live' ? "👁️" : "👻");
                 renderAdminTable();
             } else {
-                currentCategory = c;
-                currentSubcategory = "";
-                renderSidebar(target, false);
-                renderShop();
-                renderSubNav();
+                notify("Update Failed", "❌");
+                console.error(error);
             }
-        };
-
-        con.appendChild(span);
-    });
-
-    if (!isAdmin) renderSubNav();
-}
-
-function renderSubNav() {
-    const bar = document.getElementById('subcategory-bar');
-    if (!bar) return;
-
-    bar.innerHTML = '';
-    const subs = categories[currentCategory] || [];
-
-    if (subs.length > 0) {
-        const all = document.createElement('button');
-        all.innerText = "ALL";
-        all.onclick = () => {
-            currentSubcategory = "";
-            renderSubNav();
-            renderShop();
-        };
-        bar.appendChild(all);
-
-        subs.forEach(s => {
-            const btn = document.createElement('button');
-            btn.innerText = s.toUpperCase();
-            btn.onclick = () => {
-                currentSubcategory = s;
-                renderSubNav();
-                renderShop();
+        }
+        
+        function renderSidebar(target, isAdmin) {
+            const con = document.getElementById(target);
+            if (!con) return;
+        
+            con.innerHTML = '';
+        
+            Object.keys(categories).forEach(c => {
+                const active = isAdmin ? adminCurrentCategory === c : currentCategory === c;
+        
+                const span = document.createElement('span');
+                span.className = `folder-link ${active ? 'active' : ''}`;
+                span.innerText = c;
+        
+                span.onclick = () => {
+                    if (isAdmin) {
+                        adminCurrentCategory = c;
+                        const label = document.getElementById('active-folder-name');
+                        if (label) label.innerText = c;
+        
+                        renderSidebar(target, true);
+                        renderAdminTable();
+                    } else {
+                        currentCategory = c;
+                        currentSubcategory = "";
+                        renderSidebar(target, false);
+                        renderShop();
+                        renderSubNav();
+                    }
+                };
+        
+                con.appendChild(span);
+            });
+        
+            if (!isAdmin) renderSubNav();
+        }
+        
+        function renderSubNav() {
+            const bar = document.getElementById('subcategory-bar');
+            if (!bar) return;
+        
+            bar.innerHTML = '';
+            const subs = categories[currentCategory] || [];
+        
+            if (subs.length > 0) {
+                const all = document.createElement('button');
+                all.innerText = "ALL";
+                all.onclick = () => {
+                    currentSubcategory = "";
+                    renderSubNav();
+                    renderShop();
+                };
+                bar.appendChild(all);
+        
+                subs.forEach(s => {
+                    const btn = document.createElement('button');
+                    btn.innerText = s.toUpperCase();
+                    btn.onclick = () => {
+                        currentSubcategory = s;
+                        renderSubNav();
+                        renderShop();
+                    };
+                    bar.appendChild(btn);
+                });
+            }
+        }
+        
+        function renderShop() {
+            const grid = document.getElementById('shop-grid');
+            if (!grid) return;
+        
+            grid.innerHTML = '';
+        
+            catalog
+                .filter(i =>
+                    i.category === currentCategory &&
+                    (!currentSubcategory || i.subcategory === currentSubcategory) &&
+                    i.status === 'live'
+                )
+                .forEach(item => {
+                    grid.innerHTML += `
+                    <div class="art-card" onclick="openUserView(${catalog.indexOf(item)})">
+                        <div class="img-container">
+                            <img src="${item.images?.[0] || ''}">
+                        </div>
+                        <div style="display:flex;justify-content:space-between;margin-top:10px;">
+                            <h4 style="margin:0;font-size:0.9rem;">${item.name}</h4>
+                            <span style="font-weight:900;background:#00ff66;font-size:0.7rem;padding:2px 5px;">
+                                ₱${item.price}
+                            </span>
+                        </div>
+                    </div>`;
+                });
+        }
+        
+        function openUserView(idx) {
+            userViewIdx = idx;
+            const item = catalog[idx];
+        
+            tempQty = 1;
+        
+            document.getElementById('view-title').innerText = item.name;
+            document.getElementById('view-desc').innerText = item.description;
+            document.getElementById('view-price').innerText = `₱${item.price}`;
+            document.getElementById('view-qty').innerText = "1";
+            document.getElementById('user-view-carousel').innerHTML = `<img src="${item.images?.[0] || ''}">`;
+        
+            document.getElementById('add-to-cart-btn').onclick = () => {
+                item.cartQty += tempQty;
+                updateCartTotals();
+                notify("Added to Bag!");
+                closeModals();
             };
-            bar.appendChild(btn);
-        });
-    }
-}
+        
+            document.getElementById('user-modal').classList.remove('hidden');
+        }
+        
+        function adjustQty(n) {
+            const item = catalog[userViewIdx];
+            if (tempQty + n > 0 && tempQty + n <= item.stock) {
+                tempQty += n;
+                document.getElementById('view-qty').innerText = tempQty;
+            }
+        }
+        
+        function updateCartTotals() {
+            let total = 0;
+            catalog.forEach(i => total += i.cartQty);
+            document.getElementById('cart-qty-total').innerText = total;
+        }
+        
+        function notify(t, i = "✨") {
+            const a = document.getElementById('custom-alert');
+            document.getElementById('alert-text').innerText = t;
+            document.getElementById('alert-icon').innerText = i;
+        
+            a.classList.add('show');
+            setTimeout(() => a.classList.remove('show'), 2500);
+        }
+        
+        function closeModals() {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
+        }
 
-function renderShop() {
-    const grid = document.getElementById('shop-grid');
-    if (!grid) return;
+        function showInvoice() {
+            const listCon = document.getElementById('invoice-list-items');
+            const totalCon = document.getElementById('inv-total-amt');
+            if (!listCon || !totalCon) return;
+        
+            listCon.innerHTML = '';
+            let grandTotal = 0;
+        
+            catalog.forEach(item => {
+                if (item.cartQty > 0) {
+                    const itemTotal = item.price * item.cartQty;
+                    grandTotal += itemTotal;
+                    
+                    const row = document.createElement('div');
+                    row.style = "display:flex; justify-content:space-between; margin-bottom:10px; font-size:0.8rem;";
+                    row.innerHTML = `
+                        <span>${item.cartQty}x ${item.name}</span>
+                        <span>₱${itemTotal.toLocaleString()}</span>
+                    `;
+                    listCon.appendChild(row);
+                }
+            });
+        
+            totalCon.innerText = `₱${grandTotal.toLocaleString()}`;
+            document.getElementById('invoice-modal').classList.remove('hidden'); [cite: 79]
+        }
 
-    grid.innerHTML = '';
+        async function downloadOrderSheet() {
+            const sheet = document.getElementById('printable-sheet'); [cite: 75]
+            const btn = document.querySelector('.btn-download'); [cite: 79]
+            
+            btn.innerText = "GENERATING...";
+            
+            try {
+                const canvas = await html2canvas(sheet, {
+                    backgroundColor: "#ffffff",
+                    scale: 2 // Higher quality
+                });
+                
+                const link = document.createElement('a');
+                link.download = `Order_Sheet_${Date.now()}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                
+                sheetSaved = true; [cite: 79]
+                btn.innerText = "✅ SAVED";
+                notify("Order sheet saved to your device!"); [cite: 134]
+            } catch (err) {
+                console.error("Capture failed", err);
+                notify("Failed to save image", "❌"); [cite: 134]
+                btn.innerText = "1. SAVE AS IMAGE";
+            }
+        }
 
-    catalog
-        .filter(i =>
-            i.category === currentCategory &&
-            (!currentSubcategory || i.subcategory === currentSubcategory) &&
-            i.status === 'live'
-        )
-        .forEach(item => {
-            grid.innerHTML += `
-            <div class="art-card" onclick="openUserView(${catalog.indexOf(item)})">
-                <div class="img-container">
-                    <img src="${item.images?.[0] || ''}">
-                </div>
-                <div style="display:flex;justify-content:space-between;margin-top:10px;">
-                    <h4 style="margin:0;font-size:0.9rem;">${item.name}</h4>
-                    <span style="font-weight:900;background:#00ff66;font-size:0.7rem;padding:2px 5px;">
-                        ₱${item.price}
-                    </span>
-                </div>
-            </div>`;
-        });
-}
+        function openShippingModal() {
+            if (!sheetSaved) {
+                return notify("Please save your order sheet first!", "☝️"); [cite: 134]
+            }
+            document.getElementById('shipping-modal').classList.remove('hidden'); [cite: 72]
+        }
+        
+        function finishCheckout(region) {
+            const name = document.getElementById('username-input').value; [cite: 41]
+            let checkoutUrl = "";
+        
+            // Replace these URLs with your actual Google Form or Order links
+            if (region === 'local') {
+                checkoutUrl = `https://your-google-form-link-for-PH.com/?name=${encodeURIComponent(name)}`;
+            } else {
+                checkoutUrl = `https://your-google-form-link-for-INTL.com/?name=${encodeURIComponent(name)}`;
+            }
+        
+            notify("Redirecting to checkout...", "🚀"); [cite: 134]
+            setTimeout(() => {
+                window.open(checkoutUrl, '_blank');
+            }, 1500);
+        }
 
-function openUserView(idx) {
-    userViewIdx = idx;
-    const item = catalog[idx];
-
-    tempQty = 1;
-
-    document.getElementById('view-title').innerText = item.name;
-    document.getElementById('view-desc').innerText = item.description;
-    document.getElementById('view-price').innerText = `₱${item.price}`;
-    document.getElementById('view-qty').innerText = "1";
-    document.getElementById('user-view-carousel').innerHTML = `<img src="${item.images?.[0] || ''}">`;
-
-    document.getElementById('add-to-cart-btn').onclick = () => {
-        item.cartQty += tempQty;
-        updateCartTotals();
-        notify("Added to Bag!");
-        closeModals();
-    };
-
-    document.getElementById('user-modal').classList.remove('hidden');
-}
-
-function adjustQty(n) {
-    const item = catalog[userViewIdx];
-    if (tempQty + n > 0 && tempQty + n <= item.stock) {
-        tempQty += n;
-        document.getElementById('view-qty').innerText = tempQty;
-    }
-}
-
-function updateCartTotals() {
-    let total = 0;
-    catalog.forEach(i => total += i.cartQty);
-    document.getElementById('cart-qty-total').innerText = total;
-}
-
-function notify(t, i = "✨") {
-    const a = document.getElementById('custom-alert');
-    document.getElementById('alert-text').innerText = t;
-    document.getElementById('alert-icon').innerText = i;
-
-    a.classList.add('show');
-    setTimeout(() => a.classList.remove('show'), 2500);
-}
-
-function closeModals() {
-    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
-}
     </script>
 
 </body>
 </html>
+
