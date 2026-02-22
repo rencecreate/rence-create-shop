@@ -2159,6 +2159,27 @@
         cancelBtn.onclick = closeModals;
         footer.appendChild(saveBtn);
         footer.appendChild(cancelBtn);
+        
+        // Only show Delete button when editing an existing product
+        if (idx !== null) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-danger';
+            deleteBtn.style.cssText = 'width:100%; margin-top:10px;';
+            deleteBtn.textContent = '🗑 Delete Product';
+            deleteBtn.onclick = () => {
+                customConfirm(`Delete "${catalog[idx].name}"? This cannot be undone.`, async () => {
+                    const item = catalog[idx];
+                    // Remove from Supabase
+                    await supabaseClient.from('products').delete().eq('id', item.id);
+                    // Remove from local catalog
+                    catalog.splice(idx, 1);
+                    closeModals();
+                    renderAdminTable();
+                    notify("Product deleted.", "🗑️");
+                });
+            };
+            footer.appendChild(deleteBtn);
+        }
 
         renderAdminImgPreviews();
         document.getElementById('admin-modal').classList.remove('hidden');
