@@ -71,7 +71,7 @@
                 <h1 class="logo">RENCE CREATE</h1>
                 <p class="classy">Enter your name to browse</p>
                 <input type="text" id="username-input" placeholder="Your Name">
-                <button class="btn-action" onclick="enterStore()">ENTER GALLERY</button>
+                 <button class="btn-action" onclick="enterStore(event)">ENTER GALLERY</button>
                 <hr style="margin: 25px 0; border: 1px dashed #000;">
                 <button onclick="showAdminLogin()" style="background:none; border:none; cursor:pointer; font-size: 0.7rem; font-weight: 900; text-decoration: underline; font-family: 'Unbounded';">ADMIN ACCESS</button>
             </div>
@@ -225,12 +225,10 @@
         
         async function loadAllData() {
             try {
-                // 1. Fetch Settings with a timeout or fail-safe
                 const { data: setts, error: settError } = await supabaseClient.from('settings').select('*').single();
                 if (settError) throw settError;
                 if (setts && setts.category_list) categories = setts.category_list;
         
-                // 2. Fetch Products
                 const { data: prods, error: prodError } = await supabaseClient.from('products').select('*');
                 if (prodError) throw prodError;
         
@@ -249,49 +247,74 @@
                 const folderLabel = document.getElementById('active-folder-name');
                 if (folderLabel && firstCat) folderLabel.innerText = firstCat;
                 
-                return true; // Success
+                return true;
             } catch (err) {
                 console.error("Database Error:", err);
                 notify("Database Error. Please refresh.", "❌");
-                return false; // Failure
+                return false;
             }
         }
-
+        
         window.enterStore = async function() {
             const nameInput = document.getElementById('username-input');
             if (!nameInput) return;
             
             const name = nameInput.value.trim();
-            const btn = event.currentTarget; // Detects the button clicked
+            if (!name) return notify("Please enter your name", "☝️");
         
-            if (!name) {
-                return notify("Please enter your name", "☝️");
-            }
-        
-            // UI feedback
+            const btn = event.target;
             const originalText = btn.innerText;
-            btn.innerText = "LOADING GALLERY...";
+            btn.innerText = "LOADING...";
             btn.disabled = true;
         
-            try {
-                const success = await loadAllData();
+            const success = await loadAllData();
         
-                if (success) {
-                    document.getElementById('login-page').classList.add('hidden');
-                    document.getElementById('main-page').classList.remove('hidden');
-        
-                    renderSidebar('main-sidebar', false);
-                    renderShop();
-                } else {
-                    btn.innerText = originalText;
-                    btn.disabled = false;
-                }
-            } catch (err) {
-                console.error("Critical Login Error:", err);
+            if (success) {
+                document.getElementById('login-page').classList.add('hidden');
+                document.getElementById('main-page').classList.remove('hidden');
+                renderSidebar('main-sidebar', false);
+                renderShop();
+            } else {
                 btn.innerText = originalText;
                 btn.disabled = false;
             }
         };
+        
+        function showInvoice() {
+            const listCon = document.getElementById('invoice-list-items');
+            const totalCon = document.getElementById('inv-total-amt');
+            if (!listCon || !totalCon) return;
+        
+            listCon.innerHTML = '';
+            let grandTotal = 0;
+        
+            catalog.forEach(item => {
+                if (item.cartQty > 0) {
+                    const itemTotal = item.price * item.cartQty;
+                    grandTotal += itemTotal;
+                    
+                    const row = document.createElement('div');
+                    // Ensure styles are strings, not objects
+                    row.style.display = "flex";
+                    row.style.justifyContent = "space-between";
+                    row.style.marginBottom = "10px";
+                    row.style.fontSize = "0.8rem";
+                    
+                    row.innerHTML = `<span>${item.cartQty}x ${item.name}</span><span>₱${itemTotal}</span>`;
+                    listCon.appendChild(row);
+                }
+            });
+        
+            totalCon.innerText = `₱${grandTotal}`;
+            document.getElementById('invoice-modal').classList.remove('hidden');
+        }
+        
+        // Standard closeModals function
+        function closeModals() {
+            document.querySelectorAll('.modal-overlay').forEach(m => {
+                m.classList.add('hidden');
+            });
+        }
         
         function showAdminLogin() {
             document.getElementById('admin-login-modal').classList.remove('hidden');
@@ -628,37 +651,6 @@
             a.classList.add('show');
             setTimeout(() => a.classList.remove('show'), 2500);
         }
-        
-        function closeModals() {
-            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
-        }
-
-        function showInvoice() {
-            const listCon = document.getElementById('invoice-list-items');
-            const totalCon = document.getElementById('inv-total-amt');
-            if (!listCon || !totalCon) return;
-        
-            listCon.innerHTML = '';
-            let grandTotal = 0;
-        
-            catalog.forEach(item => {
-                if (item.cartQty > 0) {
-                    const itemTotal = item.price * item.cartQty;
-                    grandTotal += itemTotal;
-                    
-                    const row = document.createElement('div');
-                    row.style = "display:flex; justify-content:space-between; margin-bottom:10px; font-size:0.8rem;";
-                    row.innerHTML = `
-                        <span>${item.cartQty}x ${item.name}</span>
-                        <span>₱${itemTotal.toLocaleString()}</span>
-                    `;
-                    listCon.appendChild(row);
-                }
-            });
-        
-            totalCon.innerText = `₱${grandTotal.toLocaleString()}`;
-            document.getElementById('invoice-modal').classList.remove('hidden'); [cite: 79]
-        }
 
         async function downloadOrderSheet() {
             const sheet = document.getElementById('printable-sheet'); [cite: 75]
@@ -715,6 +707,7 @@
 
 </body>
 </html>
+
 
 
 
