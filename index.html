@@ -256,38 +256,42 @@
                 return false; // Failure
             }
         }
-        
-            const firstCat = Object.keys(categories)[0] || "";
-            currentCategory = adminCurrentCategory = firstCat;
-        
-            const folderLabel = document.getElementById('active-folder-name');
-            if (folderLabel && firstCat) folderLabel.innerText = firstCat;
-        }
-        
-        async function enterStore() {
+
+        window.enterStore = async function() {
             const nameInput = document.getElementById('username-input');
+            if (!nameInput) return;
+            
             const name = nameInput.value.trim();
-            const btn = event.target; // Get the button clicked
+            const btn = event.currentTarget; // Detects the button clicked
         
-            if (!name) return notify("Please enter your name", "☝️");
+            if (!name) {
+                return notify("Please enter your name", "☝️");
+            }
         
-            // UI feedback so user doesn't click 100 times
+            // UI feedback
+            const originalText = btn.innerText;
             btn.innerText = "LOADING GALLERY...";
             btn.disabled = true;
         
-            const success = await loadAllData();
+            try {
+                const success = await loadAllData();
         
-            if (success) {
-                document.getElementById('login-page').classList.add('hidden');
-                document.getElementById('main-page').classList.remove('hidden');
+                if (success) {
+                    document.getElementById('login-page').classList.add('hidden');
+                    document.getElementById('main-page').classList.remove('hidden');
         
-                renderSidebar('main-sidebar', false);
-                renderShop();
-            } else {
-                btn.innerText = "ENTER GALLERY";
+                    renderSidebar('main-sidebar', false);
+                    renderShop();
+                } else {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error("Critical Login Error:", err);
+                btn.innerText = originalText;
                 btn.disabled = false;
             }
-        }
+        };
         
         function showAdminLogin() {
             document.getElementById('admin-login-modal').classList.remove('hidden');
@@ -711,5 +715,6 @@
 
 </body>
 </html>
+
 
 
