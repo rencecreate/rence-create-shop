@@ -255,31 +255,40 @@
             }
         }
         
-        window.enterStore = async function() {
+        window.enterStore = async function(event) {
             const nameInput = document.getElementById('username-input');
             if (!nameInput) return;
             
             const name = nameInput.value.trim();
             if (!name) return notify("Please enter your name", "☝️");
         
-            const btn = event.target;
+            // Correctly target the button that was clicked
+            const btn = event.currentTarget || event.target;
             const originalText = btn.innerText;
-            btn.innerText = "LOADING...";
+            
+            btn.innerText = "LOADING GALLERY...";
             btn.disabled = true;
         
-            const success = await loadAllData();
+            try {
+                const success = await loadAllData(); [cite: 80, 81]
         
-            if (success) {
-                document.getElementById('login-page').classList.add('hidden');
-                document.getElementById('main-page').classList.remove('hidden');
-                renderSidebar('main-sidebar', false);
-                renderShop();
-            } else {
+                if (success) {
+                    document.getElementById('login-page').classList.add('hidden'); [cite: 41, 29]
+                    document.getElementById('main-page').classList.remove('hidden'); [cite: 44, 29]
+                    renderSidebar('main-sidebar', false); [cite: 141]
+                    renderShop(); [cite: 153]
+                } else {
+                    btn.innerText = originalText;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error("Login crashed:", err);
                 btn.innerText = originalText;
                 btn.disabled = false;
+                notify("System Error", "❌");
             }
         };
-        
+                
         function showInvoice() {
             const listCon = document.getElementById('invoice-list-items');
             const totalCon = document.getElementById('inv-total-amt');
@@ -290,22 +299,22 @@
         
             catalog.forEach(item => {
                 if (item.cartQty > 0) {
-                    const itemTotal = item.price * item.cartQty;
+                    const itemTotal = Number(item.price) * item.cartQty;
                     grandTotal += itemTotal;
                     
                     const row = document.createElement('div');
-                    // Ensure styles are strings, not objects
+                    // Using individual properties to avoid string parsing errors
                     row.style.display = "flex";
                     row.style.justifyContent = "space-between";
                     row.style.marginBottom = "10px";
                     row.style.fontSize = "0.8rem";
                     
-                    row.innerHTML = `<span>${item.cartQty}x ${item.name}</span><span>₱${itemTotal}</span>`;
+                    row.innerHTML = `<span>${item.cartQty}x ${item.name}</span><span>₱${itemTotal.toLocaleString()}</span>`;
                     listCon.appendChild(row);
                 }
             });
         
-            totalCon.innerText = `₱${grandTotal}`;
+            totalCon.innerText = `₱${grandTotal.toLocaleString()}`;
             document.getElementById('invoice-modal').classList.remove('hidden');
         }
         
@@ -348,7 +357,7 @@
                 notify("Invalid Credentials", "❌");
             }
         }
-        
+
         function renderCategoryManager() {
             const con = document.getElementById('mgr-list');
             if (!con) return;
@@ -359,35 +368,36 @@
                 const isCurrent = (adminCurrentCategory === cat);
         
                 const folderBox = document.createElement('div');
-                folderBox.style = `border-bottom:2px solid #000;padding:15px;background:${isCurrent ? '#fff' : '#eee'}`;
+                // FIX: Use setAttribute to safely apply the style string and avoid syntax breaks
+                folderBox.setAttribute('style', `border-bottom:2px solid #000; padding:15px; background:${isCurrent ? '#fff' : '#eee'};`);
         
                 folderBox.innerHTML = `
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                    <b style="font-size:0.9rem;cursor:pointer;" onclick="selectFolder('${cat}')">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <b style="font-size:0.9rem; cursor:pointer;" onclick="selectFolder('${cat}')">
                         ${isCurrent ? '📂' : '📁'} ${cat.toUpperCase()}
                     </b>
                     <div>
-                        <button onclick="mgrRenameFolder('${cat}')" style="font-size:0.5rem;font-weight:900;">RENAME</button>
-                        <button onclick="mgrDelFolder('${cat}')" style="font-size:0.5rem;font-weight:900;color:red;">DELETE</button>
+                        <button onclick="mgrRenameFolder('${cat}')" style="font-size:0.5rem; font-weight:900;">RENAME</button>
+                        <button onclick="mgrDelFolder('${cat}')" style="font-size:0.5rem; font-weight:900; color:red;">DELETE</button>
                     </div>
                 </div>
-                <div style="padding-left:20px;border-left:2px dashed #ccc;">
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">
+                <div style="padding-left:20px; border-left:2px dashed #ccc;">
+                    <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px;">
                         ${categories[cat].map((sub, idx) => `
-                            <span style="background:#000;color:#fff;font-size:0.5rem;padding:3px 8px;">
+                            <span style="background:#000; color:#fff; font-size:0.5rem; padding:3px 8px;">
                                 ${sub}
-                                <b onclick="mgrDelSub('${cat}', ${idx})" style="color:#00ff66;cursor:pointer;">×</b>
+                                <b onclick="mgrDelSub('${cat}', ${idx})" style="color:#00ff66; cursor:pointer;">×</b>
                             </span>`).join('')}
                     </div>
-                    <div style="display:flex;gap:5px;">
-                        <input type="text" id="input-sub-${cat}" placeholder="New Sub..." style="font-size:0.6rem;padding:5px;">
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="input-sub-${cat}" placeholder="New Sub..." style="font-size:0.6rem; padding:5px;">
                         <button onclick="mgrAddSubInline('${cat}')" style="font-size:0.6rem;">+ SUB</button>
                     </div>
                 </div>`;
                 con.appendChild(folderBox);
             });
         }
-        
+                
         function selectFolder(cat) {
             adminCurrentCategory = cat;
             const label = document.getElementById('active-folder-name');
@@ -707,6 +717,7 @@
 
 </body>
 </html>
+
 
 
 
