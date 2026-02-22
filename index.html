@@ -224,18 +224,38 @@
         let sheetSaved = false;
         
         async function loadAllData() {
-            const { data: setts } = await supabaseClient.from('settings').select('*').single();
-            if (setts && setts.category_list) categories = setts.category_list;
+            try {
+                // 1. Fetch Settings with a timeout or fail-safe
+                const { data: setts, error: settError } = await supabaseClient.from('settings').select('*').single();
+                if (settError) throw settError;
+                if (setts && setts.category_list) categories = setts.category_list;
         
-            const { data: prods } = await supabaseClient.from('products').select('*');
-            if (prods) {
-                catalog = prods.map(p => ({
-                    ...p,
-                    status: p.status || 'live',
-                    images: p.images || [],
-                    cartQty: 0
-                }));
+                // 2. Fetch Products
+                const { data: prods, error: prodError } = await supabaseClient.from('products').select('*');
+                if (prodError) throw prodError;
+        
+                if (prods) {
+                    catalog = prods.map(p => ({
+                        ...p,
+                        status: p.status || 'live',
+                        images: p.images || [],
+                        cartQty: 0
+                    }));
+                }
+        
+                const firstCat = Object.keys(categories)[0] || "";
+                currentCategory = adminCurrentCategory = firstCat;
+        
+                const folderLabel = document.getElementById('active-folder-name');
+                if (folderLabel && firstCat) folderLabel.innerText = firstCat;
+                
+                return true; // Success
+            } catch (err) {
+                console.error("Database Error:", err);
+                notify("Database Error. Please refresh.", "❌");
+                return false; // Failure
             }
+        }
         
             const firstCat = Object.keys(categories)[0] || "";
             currentCategory = adminCurrentCategory = firstCat;
@@ -245,16 +265,28 @@
         }
         
         async function enterStore() {
-            const name = document.getElementById('username-input').value;
+            const nameInput = document.getElementById('username-input');
+            const name = nameInput.value.trim();
+            const btn = event.target; // Get the button clicked
+        
             if (!name) return notify("Please enter your name", "☝️");
         
-            await loadAllData();
+            // UI feedback so user doesn't click 100 times
+            btn.innerText = "LOADING GALLERY...";
+            btn.disabled = true;
         
-            document.getElementById('login-page').classList.add('hidden');
-            document.getElementById('main-page').classList.remove('hidden');
+            const success = await loadAllData();
         
-            renderSidebar('main-sidebar', false);
-            renderShop();
+            if (success) {
+                document.getElementById('login-page').classList.add('hidden');
+                document.getElementById('main-page').classList.remove('hidden');
+        
+                renderSidebar('main-sidebar', false);
+                renderShop();
+            } else {
+                btn.innerText = "ENTER GALLERY";
+                btn.disabled = false;
+            }
         }
         
         function showAdminLogin() {
@@ -264,17 +296,27 @@
         async function attemptAdminLogin() {
             const u = document.getElementById('admin-user').value;
             const p = document.getElementById('admin-pass').value;
+            const btn = event.target;
         
+            // Security Check
             if (u === "admin" && btoa(p) === "Y3JlYXRlMjAyNg==") {
-                await loadAllData();
-                closeModals();
+                btn.innerText = "UNLOCKING...";
+                btn.disabled = true;
         
-                document.getElementById('login-page').classList.add('hidden');
-                document.getElementById('admin-page').classList.remove('hidden');
+                const success = await loadAllData();
         
-                renderSidebar('admin-sidebar', true);
-                renderAdminTable();
-                renderCategoryManager();
+                if (success) {
+                    closeModals();
+                    document.getElementById('login-page').classList.add('hidden');
+                    document.getElementById('admin-page').classList.remove('hidden');
+        
+                    renderSidebar('admin-sidebar', true);
+                    renderAdminTable();
+                    renderCategoryManager();
+                } else {
+                    btn.innerText = "UNLOCK STUDIO";
+                    btn.disabled = false;
+                }
             } else {
                 notify("Invalid Credentials", "❌");
             }
@@ -669,4 +711,5 @@
 
 </body>
 </html>
+
 
