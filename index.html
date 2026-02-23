@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RENCE CREATE | Art Shop</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;900&family=Fraunces:ital,opsz,wght@0,9..144,700;1,9..144,400&display=swap" rel="stylesheet">
+
+    <style>
+        /* ─────────────────────────────────────────────
+           ROOT VARIABLES
+        ───────────────────────────────────────────── */
+        :root {
+            --bg:            #f4f4f4;
+            --black:         #000000;
+            --accent:        #00ff66;
+            --white:         #ffffff;
+            --grey:          #e0e0e0;
+            --text-muted:    #555555;
+            --border:        3px solid var(--black);
+            --shadow-sm:     6px 6px 0px var(--black);
+            --shadow-lg:     12px 12px 0px var(--black);
+            --shadow-accent: 8px 8px 0px var(--accent);
+            --ease:          cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --transition:    all 0.25s var(--ease);
+            --danger:        #e00000;
+            --success:       var(--accent);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Unbounded', sans-serif;
+            background: var(--bg);
+            color: var(--black);
+            overflow-x: hidden;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .hidden { display: none !important; }
+
+        /* ─────────────────────────────────────────────
+           INPUTS & BUTTONS
+        ───────────────────────────────────────────── */
+        input, textarea, select {
+            width: 100%;
+            padding: 11px 14px;
+            border: 2px solid var(--black);
+            border-radius: 0;
+            background: var(--white);
+            font-family: 'Unbounded', sans-serif;
+            font-size: 0.7rem;
+            color: var(--black);
+            margin-bottom: 10px;
+            transition: box-shadow 0.2s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            box-shadow: 4px 4px 0px var(--accent);
+        }
+
+        button {
+            font-family: 'Unbounded', sans-serif;
+            font-weight: 900;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--black);
+            color: var(--white);
+            border: none;
+            padding: 12px 22px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        button:hover {
+            background: var(--accent);
+            color: var(--black);
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0px var(--black);
+        }
+
+        /* ─────────────────────────────────────────────
+           LOGIN CARD
+        ───────────────────────────────────────────── */
+        .login-card {
+            background: var(--white);
+            border: var(--border);
+            box-shadow: var(--shadow-accent);
+            padding: 48px 40px;
+            width: 360px;
+            max-width: calc(100vw - 32px);
+            text-align: center;
+        }
+
+        .logo {
+            font-family: 'Unbounded', sans-serif;
+            font-weight: 900;
+            font-size: 1.6rem;
+            letter-spacing: -1.5px;
+            color: var(--black);
+            text-decoration: none;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .tagline {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 32px;
+        }
+
+        /* ─────────────────────────────────────────────
+           TWO-STEP LOGIN — password reveal animation
+        ───────────────────────────────────────────── */
+        #admin-pw-wrap {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.35s ease, opacity 0.3s ease, margin 0.3s ease;
+            margin-top: 0;
+        }
+
+        #admin-pw-wrap.revealed {
+            max-height: 70px;
+            opacity: 1;
+            margin-top: 0;
+        }
+
+        /* ─────────────────────────────────────────────
+           SHOP CLOSED OVERLAY
+        ───────────────────────────────────────────── */
+        #shop-closed-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 8000;
+            background: var(--black);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 24px;
+        }
+
+        #shop-closed-overlay .closed-label {
+            font-family: 'Fraunces', serif;
+            font-style: italic;
+            font-weight: 700;
+            font-size: clamp(3rem, 12vw, 8rem);
+            color: var(--white);
+            line-height: 1;
+            margin-bottom: 24px;
+            border-bottom: 6px solid var(--accent);
+            padding-bottom: 16px;
+        }
+
+        #shop-closed-overlay .closed-msg {
+            font-family: 'Unbounded', sans-serif;
+            font-size: clamp(0.65rem, 2vw, 0.85rem);
+            font-weight: 400;
+            color: rgba(255,255,255,0.6);
+            max-width: 480px;
+            line-height: 1.8;
+            letter-spacing: 0.5px;
+        }
+
+        #shop-closed-overlay .closed-accent-line {
+            width: 60px;
+            height: 4px;
+            background: var(--accent);
+            margin: 28px auto 0;
+        }
+
+        /* ─────────────────────────────────────────────
+           TOAST NOTIFICATION
+        ───────────────────────────────────────────── */
+        #custom-alert {
+            position: fixed;
+            bottom: 32px;
+            right: 24px;
+            background: var(--black);
+            color: var(--white);
+            padding: 14px 22px;
+            border: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transform: translateY(calc(100% + 60px));
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.45s var(--ease), opacity 0.45s ease;
+            z-index: 9999;
+            box-shadow: 5px 5px 0px var(--accent);
+            max-width: 320px;
+        }
+
+        #custom-alert.show {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ═══════════════════════════════════════════════════════
+           MOBILE — index.html login page
+           All rules inside max-width: 767px — desktop untouched
+        ═══════════════════════════════════════════════════════ */
+        @media (max-width: 767px) {
+
+            /* Native momentum scrolling */
+            html, body { -webkit-overflow-scrolling: touch; }
+
+            *, *::before, *::after { box-sizing: border-box; }
+
+            body {
+                padding: 16px;
+                align-items: center;
+                overflow-x: hidden;
+                /* No tab bar on login page, so no bottom padding needed */
+            }
+
+            /* Disable tap highlight, enable custom active state */
+            button, input, a {
+                -webkit-tap-highlight-color: rgba(0, 255, 102, 0.18);
+            }
+
+            .login-card {
+                padding: 32px 20px;
+                width: calc(100vw - 32px);
+                max-width: 440px;
+                margin: 8px 8px 20px;
+                overflow: visible;
+                box-shadow: 5px 5px 0px var(--accent); /* smaller shadow = no bleed */
+            }
+
+            .logo { font-size: 1.25rem; }
+            .tagline { font-size: 0.78rem; }
+
+            /* Inputs: 16px stops iOS auto-zoom; min-height = 44px tap target */
+            input {
+                width: 100%;
+                box-sizing: border-box;
+                font-size: 16px !important;
+                padding: 13px 14px;
+                max-width: 100%;
+                min-height: 44px;
+            }
+
+            /* Button: full-width, 44px+ tap target, active replaces hover */
+            button {
+                width: 100%;
+                padding: 14px 22px;
+                font-size: 0.65rem;
+                box-sizing: border-box;
+                min-height: 44px;
+            }
+
+            button:hover {
+                transform: none;
+                box-shadow: none;
+                background: var(--black);
+                color: var(--white);
+            }
+
+            button:active {
+                background: var(--accent);
+                color: var(--black);
+                transform: translate(-2px, -2px);
+                box-shadow: 3px 3px 0px var(--black);
+                transition: transform 0.08s ease;
+            }
+
+            /* Toast stays at very bottom of login screen */
+            #custom-alert {
+                bottom: 16px;
+                right: 12px;
+                left: 12px;
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 28px 16px;
+                margin: 8px;
+                width: calc(100vw - 16px);
+            }
+            .logo { font-size: 1.1rem; letter-spacing: -1px; }
+            .tagline { font-size: 0.72rem; margin-bottom: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Toast ── -->
+<div id="custom-alert">
+    <span id="alert-icon">✨</span>
+    <span id="alert-text">Action Successful</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SHOP CLOSED OVERLAY
+═══════════════════════════════════════════════ -->
+<div id="shop-closed-overlay" class="hidden">
+    <div class="closed-label">Shop Closed</div>
+    <p id="shop-closed-msg" class="closed-msg"></p>
+    <div class="closed-accent-line"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     LOGIN CARD
+═══════════════════════════════════════════════ -->
+<div class="login-card">
+    <span class="logo">RENCE CREATE</span>
+    <p class="tagline">An independent art studio — Batangas, PH</p>
+    <p style="font-size:0.6rem; color:var(--text-muted); margin-bottom:20px; letter-spacing:0.5px;">No data entered here is saved or stored.</p>
+
+    <input type="text" id="username-input"
+           placeholder="Enter your name to browse..."
+           oninput="checkAdminTrigger()"
+           onkeydown="if(event.key==='Enter') enterStore()"
+           autocomplete="off">
+
+    <!-- Step 2: hidden password field — revealed when admin code entered -->
+    <div id="admin-pw-wrap">
+        <input type="password" id="admin-pw-input"
+               placeholder="Admin password..."
+               onkeydown="if(event.key==='Enter') enterStore()"
+               style="margin-bottom:0;">
+    </div>
+
+    <button onclick="enterStore()" style="width:100%; padding:14px; margin-top:10px;">Browse Products →</button>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════ -->
+<script>
+    /* ─── SUPABASE ─── */
+    const SUPABASE_URL = 'https://wogftjsssxfhktgdfvod.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_9yJg8M-wrRXHMfuDnCtFkA_L3n1Ii36';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    /* ─── ADMIN CREDENTIALS ─── */
+    const ADMIN_CODE     = "051022";
+    const ADMIN_PASSWORD = "rencecreate2026";
+
+    /* ─── NOTIFICATIONS ─── */
+    let _notifyTimer = null;
+    function notify(text, icon = "✨") {
+        const box = document.getElementById('custom-alert');
+        document.getElementById('alert-text').innerText = text;
+        document.getElementById('alert-icon').innerText = icon;
+        if (_notifyTimer) { clearTimeout(_notifyTimer); _notifyTimer = null; }
+        box.classList.remove('show');
+        void box.offsetWidth;
+        box.classList.add('show');
+        _notifyTimer = setTimeout(() => {
+            box.classList.remove('show');
+            _notifyTimer = null;
+        }, 3000);
+    }
+
+    /* ─── ADMIN TRIGGER ─── */
+    function checkAdminTrigger() {
+        const val  = document.getElementById('username-input').value;
+        const wrap = document.getElementById('admin-pw-wrap');
+        if (val === ADMIN_CODE) {
+            wrap.classList.add('revealed');
+            document.getElementById('admin-pw-input').focus();
+        } else {
+            wrap.classList.remove('revealed');
+        }
+    }
+
+    /* ─── ENTER STORE ─── */
+    async function enterStore() {
+        const name = document.getElementById('username-input').value.trim();
+        if (!name) { notify("Please enter your name!", "👋"); return; }
+
+        // Load shop settings from Supabase
+        const { data: setts } = await supabaseClient.from('settings').select('*').single();
+        const isShopOpen       = setts ? setts.is_shop_open !== false : true;
+        const closedShopMessage = setts?.closed_shop_message || "";
+
+        if (name === ADMIN_CODE) {
+            // Admin flow
+            const pw = document.getElementById('admin-pw-input').value;
+            if (pw !== ADMIN_PASSWORD) {
+                notify("Wrong password.", "🔒");
+                return;
+            }
+            // ✅ Admin authenticated
+            localStorage.setItem('rc_is_admin', '1');
+            sessionStorage.setItem('rc_username', 'ADMIN');
+            window.location.href = 'main-shop.html';
+
+        } else if (!isShopOpen) {
+            // Shop closed
+            document.querySelector('.login-card').style.display = 'none';
+            const overlay = document.getElementById('shop-closed-overlay');
+            document.getElementById('shop-closed-msg').innerText =
+                closedShopMessage || "We'll be back soon. Thank you for your patience! ♡";
+            overlay.classList.remove('hidden');
+
+        } else {
+            // Normal guest flow
+            localStorage.removeItem('rc_is_admin');
+            sessionStorage.setItem('rc_username', name.toUpperCase());
+            window.location.href = 'main-shop.html';
+        }
+    }
+</script>
+</body>
+</html>
