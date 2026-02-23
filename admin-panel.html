@@ -440,6 +440,11 @@
             overflow-y: auto;
         }
 
+        /* ── Confirm dialog gets highest z-index — always on top ── */
+        #confirm-panel {
+            z-index: 1100 !important;
+        }
+
         .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
         .modal-actions button { flex: 1; }
 
@@ -620,7 +625,9 @@
             button:hover { transform: none; box-shadow: none; }
             button:active { transform: translate(-2px,-2px); box-shadow: 3px 3px 0px var(--accent); background: var(--accent); color: var(--black); transition: transform 0.08s ease; }
             button.btn-ghost:active { background: var(--grey); color: var(--black); box-shadow: 3px 3px 0px var(--black); }
-            button.btn-danger:active { background: var(--danger); color: var(--white); transform: translate(-2px,-2px); }
+            /* btn-danger keeps its red color on active — don't override with accent */
+            button.btn-danger { background: var(--danger) !important; color: var(--white) !important; }
+            button.btn-danger:active { background: #c00 !important; color: var(--white) !important; transform: translate(-2px,-2px); box-shadow: 3px 3px 0px rgba(0,0,0,0.3); }
             button.btn-success:active { background: var(--accent); color: var(--black); }
             .admin-folder-btn:hover { background: var(--bg); transform: none; box-shadow: none; color: var(--black); }
             .admin-folder-btn:active { background: var(--black); color: var(--accent); }
@@ -695,7 +702,15 @@
             .modal-overlay {
                 padding: 0; align-items: flex-end;
                 overflow-y: auto; overscroll-behavior: contain;
-                -webkit-overflow-scrolling: touch; contain: layout style;
+                -webkit-overflow-scrolling: touch;
+                /* NOTE: no 'contain' here — it creates a stacking context that
+                   traps child overlays like #confirm-panel below them */
+            }
+
+            /* Confirm panel must always be on top of other modals */
+            #confirm-panel {
+                align-items: center;
+                z-index: 1100 !important;
             }
 
             .modal-card {
@@ -833,7 +848,7 @@
     <div class="admin-header">
         <h2>Admin Dashboard</h2>
         <div class="admin-header-actions">
-            <button onclick="openCatManager()">📁 Folders</button>
+            <button onclick="openCatManager()">Folders</button>
             <button onclick="openAdminModal()" style="background:#333;">+ Product</button>
             <button onclick="saveAdminChanges()" class="btn-success">Save Changes</button>
             <button onclick="logout()" class="btn-danger">Logout</button>
@@ -886,27 +901,26 @@
 ══════════════════════════════════════════════════════ -->
 <nav id="mobile-tab-bar" aria-label="Admin navigation">
 
-    <!-- Back to Shop -->
     <a href="main-shop.html" class="tab-item" aria-label="Back to shop">
-        <span class="tab-icon">🛍</span>
+        <span class="tab-icon">←</span>
         <span class="tab-label">Shop</span>
     </a>
 
     <!-- Add Product: active on this panel -->
     <button class="tab-item active" onclick="openAdminModal()" aria-label="Add product">
-        <span class="tab-icon">➕</span>
+        <span class="tab-icon">+</span>
         <span class="tab-label">Add</span>
     </button>
 
     <!-- Save Changes -->
     <button class="tab-item" onclick="saveAdminChanges()" aria-label="Save changes">
-        <span class="tab-icon">💾</span>
+        <span class="tab-icon">◈</span>
         <span class="tab-label">Save</span>
     </button>
 
     <!-- Logout -->
     <button class="tab-item" onclick="logout()" aria-label="Logout">
-        <span class="tab-icon">🚪</span>
+        <span class="tab-icon">✕</span>
         <span class="tab-label">Logout</span>
     </button>
 
@@ -1098,7 +1112,7 @@
             div.className = 'cat-manager-item';
             div.innerHTML = `
                 <div class="cat-manager-header">
-                    <span class="cat-folder-name">📁 ${cat}</span>
+                    <span class="cat-folder-name">${cat}</span>
                     <button class="btn-del-folder" onclick="mgrDelFolder('${cat}')">Delete</button>
                 </div>
                 <div class="sub-tags-wrap" id="mgr-subs-${cat}"></div>
@@ -1206,7 +1220,7 @@
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'btn-danger';
             deleteBtn.style.cssText = 'width:100%; margin-top:10px;';
-            deleteBtn.textContent = '🗑 Delete Product';
+            deleteBtn.textContent = 'Delete Product';
             deleteBtn.onclick = () => {
                 customConfirm(`Delete "${catalog[idx].name}"? This cannot be undone.`, async () => {
                     await supabaseClient.from('products').delete().eq('id', catalog[idx].id);

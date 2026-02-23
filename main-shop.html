@@ -896,31 +896,85 @@
             /* Smaller shadows — prevent horizontal overflow */
             .art-card { box-shadow: 4px 4px 0px var(--black) !important; }
 
-            /* ── CART BAR: sits above tab bar ── */
+            /* ── CART BAR: flush on top of tab bar, zero gap ── */
             .cart-bar {
                 position: fixed;
-                bottom: var(--tab-tot);   /* directly above tab bar */
+                /* bottom edge of cart bar = top edge of tab bar */
+                bottom: var(--tab-tot);
                 left: 0; right: 0;
                 z-index: 400;
-                padding: 10px 16px 12px;
+                padding: 0;        /* padding handled per-state below */
                 flex-direction: column;
                 align-items: stretch;
-                gap: 8px;
+                gap: 0;
+                /* Only top border — bottom border would create the gap */
                 border-top: 3px solid var(--black);
-                box-shadow: 0 -4px 0 var(--black);
+                border-bottom: none;
+                box-shadow: 0 -3px 0 var(--black);
                 margin: 0; border-radius: 0;
                 background: var(--white);
+                overflow: hidden;
+                transition: max-height 0.3s ease;
+                max-height: 160px;   /* expanded state */
             }
-            .cart-bar-info { gap: 12px; justify-content: center; font-size: 0.6rem; }
-            .cart-bar button { width: 100%; flex-shrink: 0; padding: 14px 16px; margin: 0; min-height: 44px; }
 
-            /* Footer: clears cart bar + tab bar */
+            /* Collapsed state — only the toggle strip shows */
+            .cart-bar.collapsed { max-height: 40px; }
+
+            /* Toggle strip — always visible at top of cart bar */
+            .cart-bar-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 6px 16px;
+                cursor: pointer;
+                user-select: none;
+                border-bottom: 1px solid var(--grey);
+                min-height: 36px;
+            }
+            .cart-bar-toggle .toggle-summary {
+                font-family: 'Unbounded', sans-serif;
+                font-size: 0.52rem;
+                font-weight: 900;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                display: flex; gap: 12px; align-items: center;
+            }
+            .cart-bar-toggle .toggle-summary b {
+                background: var(--accent);
+                padding: 1px 6px;
+                color: var(--black);
+                font-weight: 900;
+            }
+            .cart-bar-toggle .toggle-chevron {
+                font-family: 'Unbounded', sans-serif;
+                font-size: 0.65rem;
+                font-weight: 900;
+                line-height: 1;
+                transition: transform 0.3s ease;
+                color: var(--black);
+            }
+            .cart-bar.collapsed .toggle-chevron { transform: rotate(180deg); }
+
+            /* Content area inside cart bar (hidden when collapsed) */
+            .cart-bar-body {
+                padding: 8px 16px 10px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                overflow: hidden;
+            }
+
+            .cart-bar-info { gap: 12px; justify-content: center; font-size: 0.6rem; }
+            .cart-bar button { width: 100%; flex-shrink: 0; padding: 12px 16px; margin: 0; min-height: 44px; }
+
+            /* Footer: clears collapsed cart bar height (~40px) + tab bar */
             footer {
                 padding: 32px 20px;
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 16px;
-                margin-bottom: calc(var(--cart-h) + var(--tab-tot) + 8px);
+                margin-bottom: calc(var(--tab-tot) + 44px);
             }
             .footer-copy { text-align: left; }
             .est-tag { font-size: 1.1rem; }
@@ -977,9 +1031,9 @@
             .modal-price-row { padding: 12px 14px; flex-wrap: wrap; gap: 10px; }
             .modal-price { font-size: 1.1rem; }
 
-            /* Toast: above cart bar + tab bar */
+            /* Toast: above collapsed cart bar toggle strip + tab bar */
             #custom-alert {
-                bottom: calc(var(--cart-h) + var(--tab-tot) + 12px);
+                bottom: calc(var(--tab-tot) + 44px);
                 right: 12px; left: 12px; max-width: none;
             }
         }
@@ -1058,7 +1112,7 @@
         </div>
         <div style="display:flex; gap:10px; margin-top:16px;">
             <button onclick="closeModals()" class="btn-ghost" style="flex:1;">← Back</button>
-            <button onclick="closeModals(); showInvoice();" style="flex:2;">View Invoice 🧾</button>
+            <button onclick="closeModals(); showInvoice();" style="flex:2;">View Invoice</button>
         </div>
     </div>
 </div>
@@ -1089,7 +1143,7 @@
 
         <div class="modal-actions" style="margin-top:20px;">
             <button onclick="closeModals()" class="btn-ghost" style="flex:1;">← Back</button>
-            <button id="add-to-cart-btn" style="flex:2;">Add to Cart 🛒</button>
+            <button id="add-to-cart-btn" style="flex:2;">Add to Cart</button>
         </div>
     </div>
 </div>
@@ -1125,13 +1179,20 @@
     <div class="art-grid" id="shop-grid"></div>
 </div>
 
-<!-- ── Sticky Cart Bar ── -->
-<div class="cart-bar">
-    <div class="cart-bar-info">
-        <span>Items: <b id="cart-qty-bar">0</b></span>
-        <span>Subtotal: <b>₱<span id="cart-subtotal">0.00</span></b></span>
+<!-- ── Sticky Cart Bar (collapsible on mobile) ── -->
+<div class="cart-bar" id="cart-bar">
+    <!-- Toggle strip — always visible, tapping collapses/expands -->
+    <div class="cart-bar-toggle" onclick="toggleCartBar()" id="cart-bar-toggle">
+        <div class="toggle-summary">
+            <span>Items: <b id="cart-qty-bar">0</b></span>
+            <span>₱<span id="cart-subtotal">0.00</span></span>
+        </div>
+        <span class="toggle-chevron">▲</span>
     </div>
-    <button onclick="showInvoice()">VIEW INVOICE 🧾</button>
+    <!-- Expandable body -->
+    <div class="cart-bar-body" id="cart-bar-body">
+        <button onclick="showInvoice()">VIEW INVOICE</button>
+    </div>
 </div>
 
 <!-- ── Footer ── -->
@@ -1152,27 +1213,27 @@
 
     <!-- Shop (active on this page) -->
     <a href="main-shop.html" class="tab-item active" aria-label="Shop">
-        <span class="tab-icon">🛍</span>
+        <span class="tab-icon">◈</span>
         <span class="tab-label">Shop</span>
     </a>
 
     <!-- Gallery -->
     <a href="gallery.html" class="tab-item" aria-label="Gallery">
-        <span class="tab-icon">🎨</span>
+        <span class="tab-icon">✦</span>
         <span class="tab-label">Gallery</span>
     </a>
 
     <!-- Cart — triggers invoice modal, shows badge -->
     <button class="tab-item" onclick="showInvoice()" aria-label="View cart">
         <span class="tab-icon" style="position:relative;display:inline-block;">
-            🛒<span id="tab-cart-badge" class="tab-badge" style="display:none;">0</span>
+            ▣<span id="tab-cart-badge" class="tab-badge" style="display:none;">0</span>
         </span>
         <span class="tab-label">Cart</span>
     </button>
 
     <!-- Edit Order / Admin -->
     <button class="tab-item" onclick="handleHeaderAction()" aria-label="Edit order">
-        <span class="tab-icon">✏️</span>
+        <span class="tab-icon" id="tab-edit-icon">◎</span>
         <span class="tab-label" id="tab-edit-label">Edit</span>
     </button>
 
@@ -1214,8 +1275,8 @@
         /* Update mobile tab label for admin */
         const tabEditLabel = document.getElementById('tab-edit-label');
         if (tabEditLabel) tabEditLabel.textContent = 'Admin';
-        const tabEditIcon = document.querySelector('#mobile-tab-bar .tab-item:last-child .tab-icon');
-        if (tabEditIcon) tabEditIcon.textContent = '⚙️';
+        const tabEditIcon = document.getElementById('tab-edit-icon');
+        if (tabEditIcon) tabEditIcon.textContent = '⚙';
     }
 
     /* ─── DATA LOADING ─── */
@@ -1581,6 +1642,12 @@
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape') closeModals();
     });
+
+    /* ─── CART BAR COLLAPSE (mobile) ─── */
+    function toggleCartBar() {
+        const bar = document.getElementById('cart-bar');
+        if (bar) bar.classList.toggle('collapsed');
+    }
 
     /* ─── HEADROOM: hide header on scroll-down (desktop only) ─── */
     (function initHeadroom() {
