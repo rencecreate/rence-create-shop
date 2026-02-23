@@ -737,10 +737,11 @@
 
             *, *::before, *::after { box-sizing: border-box; }
 
-            /* Body: no top padding (header hidden); bottom clears tab bar */
+            /* Body: no top padding (header hidden)
+               Bottom padding = tab bar only — footer margin handles the rest */
             body {
                 padding-top: 0 !important;
-                padding-bottom: var(--tab-tot) !important;
+                padding-bottom: 0 !important;
             }
 
             /* Kill long-press callouts on interactive elements */
@@ -764,7 +765,7 @@
                 backdrop-filter: blur(20px) saturate(180%);
                 -webkit-backdrop-filter: blur(20px) saturate(180%);
                 border-top: 3px solid var(--black);
-                box-shadow: 0 -4px 0 var(--black);
+                box-shadow: none;    /* cart bar border-bottom handles the join line */
                 align-items: stretch;
             }
 
@@ -896,30 +897,33 @@
             /* Smaller shadows — prevent horizontal overflow */
             .art-card { box-shadow: 4px 4px 0px var(--black) !important; }
 
-            /* ── CART BAR: flush on top of tab bar, zero gap ── */
+            /* ── CART BAR ──
+               KEY FIX: bottom:0 + padding-bottom = tab bar height.
+               The cart bar physically extends underneath the tab bar (z-index 900 > 400).
+               There is literally no space between them — gap is architecturally impossible. */
             .cart-bar {
                 position: fixed;
-                /* bottom edge of cart bar = top edge of tab bar */
-                bottom: var(--tab-tot);
+                bottom: 0;
                 left: 0; right: 0;
                 z-index: 400;
-                padding: 0;        /* padding handled per-state below */
+                padding-top: 0;
+                padding-left: 0;
+                padding-right: 0;
+                padding-bottom: var(--tab-tot);
                 flex-direction: column;
                 align-items: stretch;
                 gap: 0;
-                /* Only top border — bottom border would create the gap */
                 border-top: 3px solid var(--black);
-                border-bottom: none;
-                box-shadow: 0 -3px 0 var(--black);
+                box-shadow: none;
                 margin: 0; border-radius: 0;
                 background: var(--white);
                 overflow: hidden;
                 transition: max-height 0.3s ease;
-                max-height: 160px;   /* expanded state */
+                max-height: calc(160px + var(--tab-tot));
             }
 
-            /* Collapsed state — only the toggle strip shows */
-            .cart-bar.collapsed { max-height: 40px; }
+            /* Collapsed: toggle strip height + underlap padding */
+            .cart-bar.collapsed { max-height: calc(40px + var(--tab-tot)); }
 
             /* Toggle strip — always visible at top of cart bar */
             .cart-bar-toggle {
@@ -968,13 +972,17 @@
             .cart-bar-info { gap: 12px; justify-content: center; font-size: 0.6rem; }
             .cart-bar button { width: 100%; flex-shrink: 0; padding: 12px 16px; margin: 0; min-height: 44px; }
 
-            /* Footer: clears collapsed cart bar height (~40px) + tab bar */
+            /* Footer: padding-bottom scrolls content clear of the fixed bars.
+               40px = collapsed cart toggle strip, var(--tab-tot) = tab bar. */
             footer {
-                padding: 32px 20px;
+                padding-top: 32px;
+                padding-left: 20px;
+                padding-right: 20px;
+                padding-bottom: calc(var(--tab-tot) + 40px + 8px);
                 flex-direction: column;
                 align-items: flex-start;
                 gap: 16px;
-                margin-bottom: calc(var(--tab-tot) + 44px);
+                margin-bottom: 0;
             }
             .footer-copy { text-align: left; }
             .est-tag { font-size: 1.1rem; }
