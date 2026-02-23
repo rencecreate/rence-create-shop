@@ -432,9 +432,13 @@
             html, body { -webkit-overflow-scrolling: touch; }
             *, *::before, *::after { box-sizing: border-box; }
 
+            /* Zero out ALL body padding — footer padding handles scroll clearance.
+               Also disable flex min-height stretch so footer isn't pinned to viewport bottom */
             body {
                 padding-top: 0 !important;
-                padding-bottom: var(--tab-tot) !important;
+                padding-bottom: 0 !important;
+                min-height: unset !important;
+                display: block !important;   /* disable flex column so footer flows naturally */
             }
 
             a, button, [role="button"] {
@@ -454,7 +458,7 @@
                 backdrop-filter: blur(20px) saturate(180%);
                 -webkit-backdrop-filter: blur(20px) saturate(180%);
                 border-top: 3px solid var(--black);
-                box-shadow: 0 -4px 0 var(--black);
+                box-shadow: none;
                 align-items: stretch;
             }
             #mobile-tab-bar .tab-item {
@@ -527,7 +531,18 @@
             .drawer-inner input, .drawer-inner textarea, .drawer-inner select { width: 100%; box-sizing: border-box; font-size: 16px; min-height: 44px; }
             .drawer-inner > div > div[style*="grid"] { grid-template-columns: 1fr !important; gap: 16px !important; }
 
-            footer { padding: 28px 20px; flex-direction: column; gap: 16px; align-items: flex-start; margin-bottom: var(--tab-tot); }
+            /* Footer: padding-bottom = tab bar height, clears the fixed tab bar.
+               Black footer background extends into the padding, no gap possible. */
+            footer {
+                padding-top: 28px;
+                padding-left: 20px;
+                padding-right: 20px;
+                padding-bottom: calc(var(--tab-tot) + 8px);
+                flex-direction: column;
+                gap: 16px;
+                align-items: flex-start;
+                margin-bottom: 0;
+            }
             .footer-copy { text-align: left; }
             .est-tag { font-size: 1.1rem; }
 
