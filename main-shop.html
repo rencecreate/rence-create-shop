@@ -1588,6 +1588,7 @@
 
     function proceedToCheckout() {
         if (!hasDownloadedSheet) { notify("Please download the order sheet first.", "⚠️"); return; }
+        document.getElementById('invoice-modal').classList.add('hidden');
         customConfirm("Where are you ordering from?", choice => {
             const localURL = "https://docs.google.com/forms/d/e/1FAIpQLSdLMu09mL10Gh6BGKQaY3Oa0iJnw2esAbpeVw_d7nrrhnZu2Q/viewform?usp=sharing&ouid=101835408618855772238";
             const intlURL  = "https://docs.google.com/forms/d/e/1FAIpQLSfQ4-Po8E5xW_XyYnB9yFE53qYucCIGBmwzHZTpyKBOVWFHkA/viewform?usp=sharing&ouid=101835408618855772238";
