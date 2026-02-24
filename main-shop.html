@@ -1002,9 +1002,10 @@
                 max-width: 100% !important;
                 min-width: 0;
                 padding: 24px 18px;
+                padding-bottom: calc(24px + var(--tab-tot) + 40px);
                 border-radius: 16px 16px 0 0 !important;
                 border-bottom: none !important;
-                max-height: 88vh;
+                max-height: 92vh;
                 overflow-y: auto;
                 overflow-x: hidden;
                 -webkit-overflow-scrolling: touch;
@@ -1120,7 +1121,7 @@
         </div>
         <div style="display:flex; gap:10px; margin-top:16px;">
             <button onclick="closeModals()" class="btn-ghost" style="flex:1;">← Back</button>
-            <button onclick="closeModals(); showInvoice();" style="flex:2;">Check Out</button>
+            <button onclick="closeModals(); showInvoice();" style="flex:2;">View Invoice</button>
         </div>
     </div>
 </div>
@@ -1199,7 +1200,7 @@
     </div>
     <!-- Expandable body -->
     <div class="cart-bar-body" id="cart-bar-body">
-        <button onclick="showInvoice()">Check Out</button>
+        <button onclick="showInvoice()">VIEW INVOICE</button>
     </div>
 </div>
 
