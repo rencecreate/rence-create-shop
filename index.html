@@ -329,7 +329,7 @@
     <p style="font-size:0.6rem; color:var(--text-muted); margin-bottom:20px; letter-spacing:0.5px;">No data entered here is saved or stored.</p>
 
     <input type="text" id="username-input"
-           placeholder="Enter your name to browse..."
+           placeholder="name pls..."
            oninput="checkAdminTrigger()"
            onkeydown="if(event.key==='Enter') enterStore()"
            autocomplete="off">
@@ -342,7 +342,7 @@
                style="margin-bottom:0;">
     </div>
 
-    <button onclick="enterStore()" style="width:100%; padding:14px; margin-top:10px;">Browse Products →</button>
+    <button onclick="enterStore()" style="width:100%; padding:14px; margin-top:10px;">Enter Studio</button>
 </div>
 
 
@@ -356,8 +356,8 @@
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     /* ─── ADMIN CREDENTIALS ─── */
-    const ADMIN_CODE     = "051022";
-    const ADMIN_PASSWORD = "rencecreate2026";
+    const ADMIN_CODE     = "CreateStudio";
+    const ADMIN_PASSWORD = "alohomora";
 
     /* ─── NOTIFICATIONS ─── */
     let _notifyTimer = null;
